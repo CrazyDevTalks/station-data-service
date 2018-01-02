@@ -1,39 +1,38 @@
 package com.merchantnottingham.littlejohnbacktestservice.quotes;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.CompoundIndex;
-import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.format.annotation.DateTimeFormat.ISO;
 
 import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Date;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@Document
+@Document(collection = "quotes")
 public class Quote {
 
-    @Id
-    public String symbol;
-
     @Indexed
-    public Calendar date;
+    private String symbol;
 
-    public BigDecimal open;
+    @DateTimeFormat(iso = ISO.DATE_TIME)
+    private Date date;
 
-    public BigDecimal high;
+    private BigDecimal open;
 
-    public BigDecimal low;
+    private BigDecimal high;
 
-    public BigDecimal close;
+    private BigDecimal low;
 
-    public long volume;
+    private BigDecimal close;
+
+    private long volume;
 
     public Quote() {}
 
-    public Quote(String symbol, Calendar date, BigDecimal open, BigDecimal high, BigDecimal low, BigDecimal close, long volume) {
+    public Quote(String symbol, Date date, BigDecimal open, BigDecimal high, BigDecimal low, BigDecimal close, long volume) {
         this.symbol = symbol;
         this.date = date;
         this.open = open;
@@ -41,6 +40,38 @@ public class Quote {
         this.low = low;
         this.high = high;
         this.volume = volume;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public Date getDate() {
+        return date;
+    }
+
+    public BigDecimal getClose() {
+        return close;
+    }
+
+    public BigDecimal getHigh() {
+        return high;
+    }
+
+    public BigDecimal getLow() {
+        return low;
+    }
+
+    public BigDecimal getOpen() {
+        return open;
+    }
+
+    public long getVolume() {
+        return volume;
+    }
+
+    public void setDate(Date date) {
+        this.date = date;
     }
 
     @Override

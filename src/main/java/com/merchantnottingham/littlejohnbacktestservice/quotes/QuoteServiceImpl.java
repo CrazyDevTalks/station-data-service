@@ -11,7 +11,9 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Component("quoteService")
 public class QuoteServiceImpl
@@ -23,29 +25,56 @@ public class QuoteServiceImpl
     private static final Logger log = LoggerFactory.getLogger(LittlejohnBacktestServiceApplication.class);
 
     @Override
-    public List<Quote> getHistoricalQuotes(String symbol, Calendar from, Calendar to)
-            throws RestClientException
-    {
-        List<Quote> quotesList = new ArrayList<>();
+    public List<Quote> getHistoricalQuotes(String symbol, Date from, Date to)
+            throws RestClientException {
 
-        List<Quote> queried = quoteRepo.findBySymbolAndDateBetween("goog", new GregorianCalendar(2017,12,28), new GregorianCalendar(2017,12,29));
+        Date start = toMidnight(from, -1);
+        Date end = toMidnight(to, 25);
 
-        log.info("Querying quotes");
+
+        List<Quote> queried = quoteRepo.findBySymbolAndDateBetween(symbol, start, end);
+        log.info("params: {} {} {}", symbol, start, end);
+
+        log.info("Queried quotes: {}", queried.size());
         queried.forEach(q -> {
-            log.info("Quote: %s", q);
+            log.info("Quote: {}", q);
         });
 
-        RestTemplate restTemplate = new RestTemplate();
+        long diff = to.getTime() - from.getTime();
+        long days = TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        if (queried.size() >= days) {
+            return queried;
+        } else {
+            RestTemplate restTemplate = new RestTemplate();
 
-        HttpEntity<String> entity = new HttpEntity<String>("{\"ticker\": \"goog\", \"start\": \"2017-12-28\", \"end\": \"2017-12-29\"}", headers);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
-        Quote[] response = restTemplate.postForObject("http://localhost:9000/api/quote", entity, Quote[].class);
+            HttpEntity<String> entity = new HttpEntity<String>("{\"ticker\": \"goog\", \"start\": \"2017-12-28\", \"end\": \"2017-12-29\"}", headers);
 
-        quoteRepo.save(Arrays.asList(response));
+            Quote[] response = restTemplate.postForObject("http://localhost:9000/api/quote", entity, Quote[].class);
 
-        return Arrays.asList(response);
+            List<Quote> quotes = Arrays.asList(response);
+            quotes.forEach(q ->{
+                        log.info("q: {}", q);
+                    }
+            );
+            quoteRepo.save(quotes);
+
+            return quotes;
+        }
+    }
+
+    private Date toMidnight(Date date, int modifier) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND,0);
+        cal.add(Calendar.HOUR_OF_DAY, modifier);
+
+        return cal.getTime();
     }
 }
