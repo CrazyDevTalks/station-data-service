@@ -32,19 +32,10 @@ public class BacktestController {
                                          @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to
     )
     {
-        List<Quote> quotes = null;
-        HttpHeaders responseHeaders = new HttpHeaders();
-
         try {
-            quotes =_quoteService.getHistoricalQuotes(symbol, from, to);
+            return _quoteService.getHistoricalQuotes(symbol, from, to);
         } catch (RestClientException e) {
-            responseHeaders.setContentType(MediaType.TEXT_PLAIN);
-            return new ResponseEntity<>(quotes,
-                    responseHeaders, HttpStatus.SERVICE_UNAVAILABLE);
+            return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }
-
-        responseHeaders.setContentType(MediaType.APPLICATION_JSON);
-        return new ResponseEntity<>(quotes,
-                responseHeaders, HttpStatus.OK);
     }
 }

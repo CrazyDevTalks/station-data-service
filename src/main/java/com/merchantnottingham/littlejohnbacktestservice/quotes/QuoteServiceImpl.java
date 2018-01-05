@@ -5,12 +5,12 @@ import com.merchantnottingham.littlejohnbacktestservice.LittlejohnBacktestServic
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.config.ResourceNotFoundException;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -25,44 +25,47 @@ public class QuoteServiceImpl
     private static final Logger log = LoggerFactory.getLogger(LittlejohnBacktestServiceApplication.class);
 
     @Override
-    public List<Quote> getHistoricalQuotes(String symbol, Date from, Date to)
+    public ResponseEntity<List<Quote>> getHistoricalQuotes(String symbol, Date from, Date to)
             throws RestClientException {
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.setContentType(MediaType.APPLICATION_JSON);
 
         Date start = toMidnight(from, -1);
         Date end = toMidnight(to, 25);
 
 
-        List<Quote> queried = quoteRepo.findBySymbolAndDateBetween(symbol, start, end);
+        List<Quote> quotes = quoteRepo.findBySymbolAndDateBetween(symbol, start, end);
         log.info("params: {} {} {}", symbol, start, end);
 
-        log.info("Queried quotes: {}", queried.size());
-        queried.forEach(q -> {
-            log.info("Quote: {}", q);
-        });
-
-        long diff = to.getTime() - from.getTime();
+        long diff = Math.abs(to.getTime() - from.getTime());
         long days = TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS);
+        log.info("DB results: {}, expected results: {}, using DB results: {} ", (double) quotes.size(), days, (double) quotes.size() - ((days * 0.75) + 1.0) >= 0.0);
 
-        if (queried.size() >= days) {
-            return queried;
+        if ((double) quotes.size() - ((days * 0.75) + 1.0) >= 0.0
+//                &&
+//                toMidnight(queried.get(0).getDate(), 0) == toMidnight(from, 0) &&
+//                toMidnight(queried.get(queried.size() - 1).getDate(), 0) == toMidnight(to, 0)
+                ) {
+
+            return new ResponseEntity<>(quotes,
+                    responseHeaders, HttpStatus.OK);
         } else {
             RestTemplate restTemplate = new RestTemplate();
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            HttpEntity<String> entity = new HttpEntity<String>("{\"ticker\": \"goog\", \"start\": \"2017-12-28\", \"end\": \"2017-12-29\"}", headers);
+            SimpleDateFormat dt1 = new SimpleDateFormat("yyyy-MM-dd");
+
+            HttpEntity<String> entity = new HttpEntity<>("{\"ticker\": \""+symbol+"\", \"start\": \"" + dt1.format(from) + "\", \"end\": \"" + dt1.format(to) + "\"}", headers);
 
             Quote[] response = restTemplate.postForObject("http://localhost:9000/api/quote", entity, Quote[].class);
 
-            List<Quote> quotes = Arrays.asList(response);
-            quotes.forEach(q ->{
-                        log.info("q: {}", q);
-                    }
-            );
+            quotes = Arrays.asList(response);
+
             quoteRepo.save(quotes);
 
-            return quotes;
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
