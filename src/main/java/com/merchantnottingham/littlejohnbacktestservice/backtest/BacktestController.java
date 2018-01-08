@@ -8,15 +8,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/backtest")
@@ -29,13 +24,24 @@ public class BacktestController {
     @RequestMapping(method = RequestMethod.POST)
     ResponseEntity<List<Quote>> backtest(@RequestParam(value = "ticker") String symbol,
                                          @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
-                                         @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to
-    )
+                                         @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to)
     {
         try {
             return _quoteService.getHistoricalQuotes(symbol, from, to);
         } catch (RestClientException e) {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }
+    }
+    @RequestMapping(
+            value = "/info/csv",
+            method = RequestMethod.GET)
+    @ResponseBody
+    public String getFoosWithHeaders(@RequestParam("ticker") String symbol,
+                                     @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
+                                     @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to) {
+        return "Get some Foos with Header";
+    }
+
+    public static interface BacktestService {
     }
 }

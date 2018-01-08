@@ -1,6 +1,7 @@
 package com.merchantnottingham.littlejohnbacktestservice.quotes;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -13,6 +14,9 @@ import java.util.Date;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Document(collection = "quotes")
 public class Quote {
+
+    @Id
+    String id;
 
     @Indexed
     private String symbol;
@@ -31,6 +35,10 @@ public class Quote {
     private long volume;
 
     public Quote() {}
+
+    public Quote(String symbol) {
+        this.symbol = symbol;
+    }
 
     public Quote(String symbol, Date date, BigDecimal open, BigDecimal high, BigDecimal low, BigDecimal close, long volume) {
         this.symbol = symbol;

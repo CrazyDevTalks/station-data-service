@@ -33,23 +33,25 @@ public class QuoteServiceImpl
         Date start = toMidnight(from, -1);
         Date end = toMidnight(to, 25);
 
-
+        symbol = symbol.toUpperCase();
         List<Quote> quotes = quoteRepo.findBySymbolAndDateBetween(symbol, start, end);
         log.info("params: {} {} {}", symbol, start, end);
 
         long diff = Math.abs(to.getTime() - from.getTime());
         long days = TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS);
-        log.info("DB results: {}, expected results: {}, using DB results: {} ", (double) quotes.size(), days, (double) quotes.size() - ((days * 0.75) + 1.0) >= 0.0);
+        log.info("DB results: {}, expected results: {} ", (double) quotes.size(), days);
 
-        if ((double) quotes.size() - ((days * 0.75) + 1.0) >= 0.0
+        if ((double) quotes.size() - ((days * 0.685) + 1.0) >= 0.0
 //                &&
 //                toMidnight(queried.get(0).getDate(), 0) == toMidnight(from, 0) &&
 //                toMidnight(queried.get(queried.size() - 1).getDate(), 0) == toMidnight(to, 0)
                 ) {
+            log.info("Using DB results");
 
             return new ResponseEntity<>(quotes,
                     responseHeaders, HttpStatus.OK);
         } else {
+            quoteRepo.delete(quotes);
             RestTemplate restTemplate = new RestTemplate();
 
             HttpHeaders headers = new HttpHeaders();
@@ -64,6 +66,7 @@ public class QuoteServiceImpl
             quotes = Arrays.asList(response);
 
             quoteRepo.save(quotes);
+            log.info("Saved results");
 
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
