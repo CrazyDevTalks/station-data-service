@@ -41,7 +41,4 @@ public class BacktestController {
                                      @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to) {
         return "Get some Foos with Header";
     }
-
-    public static interface BacktestService {
-    }
 }
