@@ -41,4 +41,21 @@ public class BacktestController {
                                      @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to) {
         return "Get some Foos with Header";
     }
+
+        @RequestMapping(
+                value = "/strategy/mean-reversion/train",
+                method = RequestMethod.POST)
+        @ResponseBody
+        public String meanReversionTrainer(@RequestParam("ticker") String symbol,
+                                           @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
+                                           @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to,
+                                           @RequestParam("shortStart") int shortTermStart,
+                                           @RequestParam("longStart") int longTermStart,
+                                           @RequestParam("shortEnd") int shortTermEnd,
+                                           @RequestParam("longEnd") int longTermEnd
+
+        ) {
+
+        return "Get some Foos with Header";
+        }
 }
