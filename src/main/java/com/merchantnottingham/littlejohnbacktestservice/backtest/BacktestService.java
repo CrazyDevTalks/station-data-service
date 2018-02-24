@@ -1,5 +1,6 @@
 package com.merchantnottingham.littlejohnbacktestservice.backtest;
 
+import com.merchantnottingham.littlejohnbacktestservice.models.Signal;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;

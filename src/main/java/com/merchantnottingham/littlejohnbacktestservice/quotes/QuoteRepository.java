@@ -1,5 +1,6 @@
 package com.merchantnottingham.littlejohnbacktestservice.quotes;
 
+import com.merchantnottingham.littlejohnbacktestservice.models.Quote;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 

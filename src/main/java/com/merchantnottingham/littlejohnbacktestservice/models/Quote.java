@@ -1,4 +1,4 @@
-package com.merchantnottingham.littlejohnbacktestservice.quotes;
+package com.merchantnottingham.littlejohnbacktestservice.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.data.annotation.Id;

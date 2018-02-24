@@ -1,6 +1,6 @@
 package com.merchantnottingham.littlejohnbacktestservice.quotes;
 
-import com.merchantnottingham.littlejohnbacktestservice.quotes.Quote;
+import com.merchantnottingham.littlejohnbacktestservice.models.Quote;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClientException;
 

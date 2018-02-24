@@ -1,7 +1,7 @@
 package com.merchantnottingham.littlejohnbacktestservice.backtest;
 
 import com.merchantnottingham.littlejohnbacktestservice.LittlejohnBacktestServiceApplication;
-import com.merchantnottingham.littlejohnbacktestservice.quotes.Quote;
+import com.merchantnottingham.littlejohnbacktestservice.models.Quote;
 import com.merchantnottingham.littlejohnbacktestservice.quotes.QuoteService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

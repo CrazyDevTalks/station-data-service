@@ -2,6 +2,7 @@ package com.merchantnottingham.littlejohnbacktestservice.quotes;
 
 
 import com.merchantnottingham.littlejohnbacktestservice.LittlejohnBacktestServiceApplication;
+import com.merchantnottingham.littlejohnbacktestservice.models.Quote;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,8 +30,8 @@ public class QuoteServiceImpl
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(MediaType.APPLICATION_JSON);
 
-        Date start = toTradeDay(from, -1);
-        Date end = toTradeDay(to, 25);
+        Date start = toTradeDay(from, 0);
+        Date end = toTradeDay(to, 0);
 
         symbol = symbol.toUpperCase();
         List<Quote> quotes = quoteRepo.findBySymbolAndDateBetween(symbol, start, end);
@@ -38,22 +39,20 @@ public class QuoteServiceImpl
 
         long diff = Math.abs(to.getTime() - from.getTime());
         long days = TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS);
-        log.info("DB results: {}, expected results: {} ", (double) quotes.size(), days);
+        log.info("DB results: {}, expected results: {} ", (double) quotes.size(), estimateTradeDays(days));
 
-        if ((double) quotes.size() - ((days * 0.685) + 1.0) >= 0.0) {
-            log.info("Using DB results");
-
-            log.info("start date: {}, end date: {}", quotes.get(0).getDate(), quotes.get(quotes.size() - 1).getDate());
-            return new ResponseEntity<>(quotes,
-                    responseHeaders, HttpStatus.OK);
-        } else if (quotes.size() > 0 && start.compareTo(toTradeDay(quotes.get(0).getDate(), 0)) >= 0 &&
-                end.compareTo(toTradeDay(quotes.get(quotes.size() - 1).getDate(), 0)) > 0
+        if (quotes.size() > 0 && start.compareTo(quotes.get(0).getDate()) >= 0 &&
+                end.compareTo(quotes.get(quotes.size() - 1).getDate()) > 0
                 ) {
             log.info("Updating DB results");
 
-            log.info("new start date: {}, end date: {}", toTradeDay(quotes.get(quotes.size() - 1).getDate(), 0), end);
-            addQuotes(symbol, toTradeDay(quotes.get(quotes.size() - 1).getDate(), 0), end);
+            log.info("new start date: {}, end date: {}", quotes.get(quotes.size() - 1).getDate(), end);
+            addQuotes(symbol, quotes.get(quotes.size() - 1).getDate(), end);
 
+            return new ResponseEntity<>(quotes,
+                    responseHeaders, HttpStatus.OK);
+        } else if ((double) quotes.size() - estimateTradeDays(days) >= 0.0) {
+            log.info("Using DB results");
             return new ResponseEntity<>(quotes,
                     responseHeaders, HttpStatus.OK);
         }
@@ -98,5 +97,13 @@ public class QuoteServiceImpl
         }
 
         return cal.getTime();
+    }
+
+    private double estimateTradeDays(double days) {
+        double workDaysPerWeek = 5.0 / 7.0;
+        double holidays = 9.0;
+        log.info("trade days: {}", (days * workDaysPerWeek));
+
+        return Math.ceil((days * workDaysPerWeek) - holidays);
     }
 }
