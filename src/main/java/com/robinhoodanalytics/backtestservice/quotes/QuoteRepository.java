@@ -1,6 +1,6 @@
-package com.merchantnottingham.littlejohnbacktestservice.quotes;
+package com.robinhoodanalytics.backtestservice.quotes;
 
-import com.merchantnottingham.littlejohnbacktestservice.models.Quote;
+import com.robinhoodanalytics.backtestservice.models.Quote;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 

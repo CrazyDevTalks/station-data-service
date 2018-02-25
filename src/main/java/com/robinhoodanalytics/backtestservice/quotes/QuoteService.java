@@ -1,6 +1,6 @@
-package com.merchantnottingham.littlejohnbacktestservice.quotes;
+package com.robinhoodanalytics.backtestservice.quotes;
 
-import com.merchantnottingham.littlejohnbacktestservice.models.Quote;
+import com.robinhoodanalytics.backtestservice.models.Quote;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClientException;
 

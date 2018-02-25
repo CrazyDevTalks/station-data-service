@@ -1,4 +1,4 @@
-package com.merchantnottingham.littlejohnbacktestservice.utils;
+package com.robinhoodanalytics.backtestservice.utils;
 
 import org.apache.commons.math3.stat.StatUtils;
 

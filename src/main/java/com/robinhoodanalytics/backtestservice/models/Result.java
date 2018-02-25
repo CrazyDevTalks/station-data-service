@@ -1,7 +1,7 @@
-package com.merchantnottingham.littlejohnbacktestservice.models;
+package com.robinhoodanalytics.backtestservice.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.merchantnottingham.littlejohnbacktestservice.utils.Statistics;
+import com.robinhoodanalytics.backtestservice.utils.Statistics;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;

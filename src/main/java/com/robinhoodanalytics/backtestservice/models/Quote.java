@@ -1,4 +1,4 @@
-package com.merchantnottingham.littlejohnbacktestservice.models;
+package com.robinhoodanalytics.backtestservice.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.data.annotation.Id;

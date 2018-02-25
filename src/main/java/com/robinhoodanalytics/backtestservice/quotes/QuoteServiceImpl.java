@@ -1,8 +1,8 @@
-package com.merchantnottingham.littlejohnbacktestservice.quotes;
+package com.robinhoodanalytics.backtestservice.quotes;
 
 
-import com.merchantnottingham.littlejohnbacktestservice.LittlejohnBacktestServiceApplication;
-import com.merchantnottingham.littlejohnbacktestservice.models.Quote;
+import com.robinhoodanalytics.backtestservice.BacktestServiceApplication;
+import com.robinhoodanalytics.backtestservice.models.Quote;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +22,7 @@ public class QuoteServiceImpl
     @Autowired
     private QuoteRepository quoteRepo;
 
-    private static final Logger log = LoggerFactory.getLogger(LittlejohnBacktestServiceApplication.class);
+    private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
     @Override
     public ResponseEntity<List<Quote>> getHistoricalQuotes(String symbol, Date from, Date to)

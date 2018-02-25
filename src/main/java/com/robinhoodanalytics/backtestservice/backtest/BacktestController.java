@@ -1,8 +1,8 @@
-package com.merchantnottingham.littlejohnbacktestservice.backtest;
+package com.robinhoodanalytics.backtestservice.backtest;
 
-import com.merchantnottingham.littlejohnbacktestservice.LittlejohnBacktestServiceApplication;
-import com.merchantnottingham.littlejohnbacktestservice.models.Quote;
-import com.merchantnottingham.littlejohnbacktestservice.quotes.QuoteService;
+import com.robinhoodanalytics.backtestservice.BacktestServiceApplication;
+import com.robinhoodanalytics.backtestservice.models.Quote;
+import com.robinhoodanalytics.backtestservice.quotes.QuoteService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +19,7 @@ public class BacktestController {
     @Autowired
     private QuoteService _quoteService;
 
-    private static final Logger log = LoggerFactory.getLogger(LittlejohnBacktestServiceApplication.class);
+    private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
     @RequestMapping(method = RequestMethod.POST)
     ResponseEntity<List<Quote>> backtest(@RequestParam(value = "ticker") String symbol,

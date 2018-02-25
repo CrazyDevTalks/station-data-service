@@ -1,4 +1,4 @@
-package com.merchantnottingham.littlejohnbacktestservice.models;
+package com.robinhoodanalytics.backtestservice.models;
 
 import org.springframework.format.annotation.DateTimeFormat;
 

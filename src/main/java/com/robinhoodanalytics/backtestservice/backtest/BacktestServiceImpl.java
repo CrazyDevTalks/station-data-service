@@ -1,6 +1,6 @@
-package com.merchantnottingham.littlejohnbacktestservice.backtest;
+package com.robinhoodanalytics.backtestservice.backtest;
 
-import com.merchantnottingham.littlejohnbacktestservice.models.Signal;
+import com.robinhoodanalytics.backtestservice.models.Signal;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
