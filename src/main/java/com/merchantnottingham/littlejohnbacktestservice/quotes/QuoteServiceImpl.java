@@ -31,7 +31,7 @@ public class QuoteServiceImpl
         responseHeaders.setContentType(MediaType.APPLICATION_JSON);
 
         Date start = toTradeDay(from, 0);
-        Date end = toTradeDay(to, 0);
+        Date end = toTradeDay(to, 23);
 
         symbol = symbol.toUpperCase();
         List<Quote> quotes = quoteRepo.findBySymbolAndDateBetween(symbol, start, end);
@@ -40,9 +40,13 @@ public class QuoteServiceImpl
         long diff = Math.abs(to.getTime() - from.getTime());
         long days = TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS);
         log.info("DB results: {}, expected results: {} ", (double) quotes.size(), estimateTradeDays(days));
+        if (quotes.size() > 0) {
+            log.info("Requested start date: {}, Found start date: {} ", start, quotes.get(0).getDate());
+            log.info("Requested end date: {}, Found end date: {} ", end, quotes.get(quotes.size() - 1).getDate());
+        }
 
-        if (quotes.size() > 0 && start.compareTo(quotes.get(0).getDate()) >= 0 &&
-                end.compareTo(quotes.get(quotes.size() - 1).getDate()) > 0
+        if (quotes.size() > 0 && compareTradeDays(start, quotes.get(0).getDate()) >= 0 &&
+                compareTradeDays(end, quotes.get(quotes.size() - 1).getDate()) > 0
                 ) {
             log.info("Updating DB results");
 
@@ -51,7 +55,9 @@ public class QuoteServiceImpl
 
             return new ResponseEntity<>(quotes,
                     responseHeaders, HttpStatus.OK);
-        } else if ((double) quotes.size() - estimateTradeDays(days) >= 0.0) {
+        } else if (quotes.size() > 0 && (double) quotes.size() - estimateTradeDays(days) >= -10.0
+                && compareTradeDays(start, quotes.get(0).getDate()) >= 0 &&
+                compareTradeDays(end, quotes.get(quotes.size() - 1).getDate()) <= 0) {
             log.info("Using DB results");
             return new ResponseEntity<>(quotes,
                     responseHeaders, HttpStatus.OK);
@@ -81,29 +87,38 @@ public class QuoteServiceImpl
         log.info("Saved {} results", quotes.size());
     }
 
-    private Date toTradeDay(Date date, int hourModifier) {
+    private Date toTradeDay(Date date, int modifier) {
         Calendar cal = Calendar.getInstance();
         cal.setTime(date);
-        cal.set(Calendar.HOUR_OF_DAY, 0);
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND,0);
-        cal.add(Calendar.HOUR_OF_DAY, hourModifier);
+        cal.set(Calendar.HOUR_OF_DAY, modifier);
 
         if ((cal.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY)) {
             cal.add(Calendar.DATE, -1);
         } else if ((cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY)){
             cal.add(Calendar.DATE, -2);
         }
-
         return cal.getTime();
     }
 
+    private Date standardizeDate(Date date) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND,0);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        return cal.getTime();
+    }
     private double estimateTradeDays(double days) {
         double workDaysPerWeek = 5.0 / 7.0;
         double holidays = 9.0;
-        log.info("trade days: {}", (days * workDaysPerWeek));
-
         return Math.ceil((days * workDaysPerWeek) - holidays);
+    }
+
+    private int compareTradeDays(Date requestedDate, Date foundDate) {
+        return standardizeDate(requestedDate).compareTo(standardizeDate(foundDate));
     }
 }

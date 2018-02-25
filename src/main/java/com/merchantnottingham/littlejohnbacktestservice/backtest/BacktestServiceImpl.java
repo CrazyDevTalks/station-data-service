@@ -28,4 +28,9 @@ public class BacktestServiceImpl
     {
         return new ResponseEntity<List<Signal>>(HttpStatus.NOT_FOUND);
     }
+
+    public void run()
+    {
+
+    }
 }
