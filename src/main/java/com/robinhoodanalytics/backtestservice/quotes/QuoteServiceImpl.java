@@ -41,8 +41,8 @@ public class QuoteServiceImpl
         long days = TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS);
         log.info("DB results: {}, expected results: {} ", (double) quotes.size(), estimateTradeDays(days));
         if (quotes.size() > 0) {
-            log.info("Requested start date: {}, Found start date: {} ", start, quotes.get(0).getDate());
-            log.info("Requested end date: {}, Found end date: {} ", end, quotes.get(quotes.size() - 1).getDate());
+            log.info("Requested start date: {}, Found start date: {}, {}", start, quotes.get(0).getDate(), compareTradeDays(start, quotes.get(0).getDate()));
+            log.info("Requested end date: {}, Found end date: {}, {}", end, quotes.get(quotes.size() - 1).getDate(), compareTradeDays(end, quotes.get(quotes.size() - 1).getDate()));
         }
 
         if (quotes.size() > 0 && compareTradeDays(start, quotes.get(0).getDate()) >= 0 &&

@@ -25,7 +25,7 @@ public class Momentum implements TradingStrategy {
     }
 
     @Override
-    public List<Order> onTick(Quote quote) {
+    public void onTick(Quote quote) {
         List<Order> orders = new ArrayList<>();
 
         movingAverage.add(quote.getClose());
@@ -35,7 +35,7 @@ public class Momentum implements TradingStrategy {
                 orders.add(newOrder);
             }
         }
-        return orders;
+
     }
 
     @Override
