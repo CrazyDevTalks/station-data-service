@@ -21,7 +21,7 @@ public class BacktestController {
     private QuoteService _quoteService;
 
     @Autowired
-    private BacktestService _backtestService;
+    private BacktestMainService _backtestMainService;
 
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
@@ -57,7 +57,7 @@ public class BacktestController {
     {
         switch(tradingStrategy.toLowerCase()) {
             case "buyandhold":
-                _backtestService.buyAndHold(symbols, from, to, initialFund);
+                _backtestMainService.buyAndHold(symbols, from, to, initialFund);
             break;
         }
         return "Get some Foos with Header";

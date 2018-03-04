@@ -3,14 +3,16 @@ package com.robinhoodanalytics.backtestservice.backtest;
 import com.robinhoodanalytics.backtestservice.models.Signal;
 import com.robinhoodanalytics.backtestservice.models.StockRank;
 import com.robinhoodanalytics.backtestservice.quotes.QuoteService;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.ArrayList;
 
-public class BacktestServiceImpl
-    implements BacktestService
+@Component("backtestMainService")
+public class BacktestMainServiceImpl
+    implements BacktestMainService
 {
     QuoteService _quoteService;
 
