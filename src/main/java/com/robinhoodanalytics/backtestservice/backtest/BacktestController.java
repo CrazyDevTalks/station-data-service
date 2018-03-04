@@ -11,6 +11,7 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestClientException;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 @RestController
@@ -18,6 +19,9 @@ import java.util.*;
 public class BacktestController {
     @Autowired
     private QuoteService _quoteService;
+
+    @Autowired
+    private BacktestService _backtestService;
 
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
@@ -27,18 +31,35 @@ public class BacktestController {
                                          @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to)
     {
         try {
-            return _quoteService.getHistoricalQuotes(symbol, from, to);
+            HttpHeaders responseHeaders = new HttpHeaders();
+            responseHeaders.setContentType(MediaType.APPLICATION_JSON);
+            List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, from, to);
+
+            if (quotes != null) {
+                return new ResponseEntity<>(quotes, responseHeaders, HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
         } catch (RestClientException e) {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }
     }
+
     @RequestMapping(
-            value = "/info/csv",
-            method = RequestMethod.GET)
+            value = "/run",
+            method = RequestMethod.POST)
     @ResponseBody
-    public String getFoosWithHeaders(@RequestParam("ticker") String symbol,
-                                     @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
-                                     @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to) {
+    public String executeSomeBacktest(@RequestParam("tickers") List<String> symbols,
+                                      @RequestParam("strategy") String tradingStrategy,
+                                      @RequestParam("cash") BigDecimal initialFund,
+                                      @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
+                                      @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to) 
+    {
+        switch(tradingStrategy.toLowerCase()) {
+            case "buyandhold":
+                _backtestService.buyAndHold(symbols, from, to, initialFund);
+            break;
+        }
         return "Get some Foos with Header";
     }
 

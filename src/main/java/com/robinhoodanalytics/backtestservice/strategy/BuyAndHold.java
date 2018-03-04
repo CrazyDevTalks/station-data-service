@@ -18,13 +18,13 @@ public class BuyAndHold implements TradingStrategy {
     }
 
     @Override
-    public void onTick(Map<String, List<Quote>> quotes) {
+    public void onTick(Map<String, List<Quote>> data) {
         List<Order> orders = new ArrayList<>();
 
         this.context.getStocks().parallelStream().forEach((stockRank) -> {
-            List<Quote> stockQuotes = quotes.get(stockRank.getSymbol());
+            List<Quote> stockQuotes = data.get(stockRank.getSymbol());
             if (stockQuotes != null && !stockQuotes.isEmpty()) {
-                Quote quote = quotes.get(stockRank.getSymbol()).get(stockQuotes.size() - 1);
+                Quote quote = data.get(stockRank.getSymbol()).get(stockQuotes.size() - 1);
                 int quantity = 1;
                 BigDecimal cost = quote.getClose().multiply(new BigDecimal(quantity));
                 if (this.context.getCash().compareTo(cost) >= 0) {
@@ -38,5 +38,9 @@ public class BuyAndHold implements TradingStrategy {
     @Override
     public void rebalance() {
 
+    }
+
+    public TradingContext getContext() {
+        return this.context;
     }
 }

@@ -25,10 +25,8 @@ public class QuoteServiceImpl
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
     @Override
-    public ResponseEntity<List<Quote>> getHistoricalQuotes(String symbol, Date from, Date to)
+    public List<Quote> getHistoricalQuotes(String symbol, Date from, Date to)
             throws RestClientException {
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.setContentType(MediaType.APPLICATION_JSON);
 
         Date start = toTradeDay(from, 0);
         Date end = toTradeDay(to, 23);
@@ -53,19 +51,17 @@ public class QuoteServiceImpl
             log.info("new start date: {}, end date: {}", quotes.get(quotes.size() - 1).getDate(), end);
             addQuotes(symbol, quotes.get(quotes.size() - 1).getDate(), end);
 
-            return new ResponseEntity<>(quotes,
-                    responseHeaders, HttpStatus.OK);
+            return quotes;
         } else if (quotes.size() > 0 && (double) quotes.size() - estimateTradeDays(days) >= -10.0
                 && compareTradeDays(start, quotes.get(0).getDate()) >= 0 &&
                 compareTradeDays(end, quotes.get(quotes.size() - 1).getDate()) <= 0) {
             log.info("Using DB results");
-            return new ResponseEntity<>(quotes,
-                    responseHeaders, HttpStatus.OK);
+            return quotes;
         }
         else {
             quoteRepo.delete(quotes);
             addQuotes(symbol, from, to);
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return null;
         }
     }
 
