@@ -47,16 +47,14 @@ public class QuoteServiceImpl
             log.info("Requested end date: {}, Found end date: {}, {}", end, quotes.get(quotes.size() - 1).getDate(), compareTradeDays(end, quotes.get(quotes.size() - 1).getDate()));
         }
 
-        if (quotes.size() > 0 && compareTradeDays(start, quotes.get(0).getDate()) >= 0 &&
-                compareTradeDays(end, quotes.get(quotes.size() - 1).getDate()) > 0
-                ) {
-            log.info("Updating DB results");
-
-            log.info("new start date: {}, end date: {}", quotes.get(quotes.size() - 1).getDate(), end);
-            addQuotes(symbol, quotes.get(quotes.size() - 1).getDate(), end);
-
-            return quotes;
-        } else if (quotes.size() > 0 && (double) quotes.size() - estimateTradeDays(days) >= -10.0
+//        if (quotes.size() > 0 && compareTradeDays(start, quotes.get(0).getDate()) >= 0 &&
+//                compareTradeDays(end, quotes.get(quotes.size() - 1).getDate()) > 0) {
+//            log.info("Updating DB results");
+//
+//            log.info("new start date: {}, end date: {}", quotes.get(quotes.size() - 1).getDate(), end);
+//            return updateQuotes(symbol, quotes, quotes.get(quotes.size() - 1).getDate(), end);
+//        } else
+        if (quotes.size() > 0 && (double) quotes.size() - estimateTradeDays(days) >= -10.0
                 && compareTradeDays(start, quotes.get(0).getDate()) >= 0 &&
                 compareTradeDays(end, quotes.get(quotes.size() - 1).getDate()) <= 0) {
             log.info("Using DB results");
@@ -64,7 +62,7 @@ public class QuoteServiceImpl
         }
         else {
             quoteRepo.delete(quotes);
-            return addQuotes(symbol, from, to);
+            return addQuotes(symbol, start, end);
         }
     }
 
@@ -84,6 +82,40 @@ public class QuoteServiceImpl
 
         quoteRepo.save(quotes);
         log.info("Saved {} results", quotes.size());
+        return quotes;
+    }
+
+    private List<Quote> updateQuotes(String symbol, List<Quote> existingQuotes, Date from, Date to) {
+        RestTemplate restTemplate = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        SimpleDateFormat dt1 = new SimpleDateFormat("yyyy-MM-dd");
+
+        HttpEntity<String> entity = new HttpEntity<>("{\"ticker\": \""+symbol+"\", \"start\": \"" + dt1.format(from) + "\", \"end\": \"" + dt1.format(to) + "\"}", headers);
+
+        Quote[] response = restTemplate.postForObject("http://localhost:9000/api/quote", entity, Quote[].class);
+
+        List<Quote> quotes = Arrays.asList(response);
+
+        List<Quote> filteredQuotes = new ArrayList<>();
+
+        for (Quote q: quotes) {
+            boolean duplicate = false;
+            for (int i = existingQuotes.size() - 1; i >= 0; i--) {
+                log.info("looking: {} {}", existingQuotes.get(i).getDate(), q.getDate());
+
+                if (existingQuotes.get(i).getDate().compareTo(q.getDate()) == 0) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) {
+                filteredQuotes.add(q);
+            }
+        }
+        quoteRepo.save(filteredQuotes);
         return quotes;
     }
 
