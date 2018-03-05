@@ -27,7 +27,11 @@ public class QuoteServiceImpl
     @Override
     public List<Quote> getHistoricalQuotes(String symbol, Date from, Date to)
             throws RestClientException {
+        return retrieveQuotes(symbol, from, to);
+    }
 
+    public List<Quote> retrieveQuotes(String symbol, Date from, Date to)
+            throws RestClientException {
         Date start = toTradeDay(from, 0);
         Date end = toTradeDay(to, 23);
 
@@ -60,12 +64,11 @@ public class QuoteServiceImpl
         }
         else {
             quoteRepo.delete(quotes);
-            addQuotes(symbol, from, to);
-            return null;
+            return addQuotes(symbol, from, to);
         }
     }
 
-    private void addQuotes(String symbol, Date from, Date to) {
+    private List<Quote> addQuotes(String symbol, Date from, Date to) {
         RestTemplate restTemplate = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
@@ -81,6 +84,7 @@ public class QuoteServiceImpl
 
         quoteRepo.save(quotes);
         log.info("Saved {} results", quotes.size());
+        return quotes;
     }
 
     private Date toTradeDay(Date date, int modifier) {
