@@ -36,4 +36,20 @@ public class BacktestContext implements TradingContext{
     public BigDecimal getCash() {
         return _cash;
     }
+
+    @Override
+    public void addOrder(Order order) {
+        _orders.add(order);
+    }
+
+    @Override
+    public List<Order> getOrders() {
+        return _orders;
+    }
+
+    @Override
+    public BigDecimal fillOrder(BigDecimal cost) {
+        _cash = _cash.subtract(cost);
+        return _cash;
+    }
 }

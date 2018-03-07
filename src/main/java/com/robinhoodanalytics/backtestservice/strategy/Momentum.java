@@ -6,6 +6,7 @@ import com.robinhoodanalytics.backtestservice.models.TradingContext;
 import com.robinhoodanalytics.backtestservice.utils.RollingAverage;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +26,7 @@ public class Momentum implements TradingStrategy {
     }
 
     @Override
-    public void onTick(Map<String, List<Quote>> quotes) {
+    public void onTick(Date date, Map<String, Quote> today) {
 //        List<Order> orders = new ArrayList<>();
 //
 //        movingAverage.add(quote.getClose());

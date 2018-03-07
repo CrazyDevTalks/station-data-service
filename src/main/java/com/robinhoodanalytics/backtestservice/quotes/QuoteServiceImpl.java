@@ -3,6 +3,7 @@ package com.robinhoodanalytics.backtestservice.quotes;
 
 import com.robinhoodanalytics.backtestservice.BacktestServiceApplication;
 import com.robinhoodanalytics.backtestservice.models.Quote;
+import com.robinhoodanalytics.backtestservice.utils.DateParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +33,8 @@ public class QuoteServiceImpl
 
     public List<Quote> retrieveQuotes(String symbol, Date from, Date to)
             throws RestClientException {
-        Date start = toTradeDay(from, 0);
-        Date end = toTradeDay(to, 23);
+        Date start = DateParser.toTradeDay(from, 0);
+        Date end = DateParser.toTradeDay(to, 23);
 
         symbol = symbol.toUpperCase();
         List<Quote> quotes = quoteRepo.findBySymbolAndDateBetween(symbol, start, end);
@@ -41,22 +42,15 @@ public class QuoteServiceImpl
 
         long diff = Math.abs(to.getTime() - from.getTime());
         long days = TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS);
-        log.info("DB results: {}, expected results: {} ", (double) quotes.size(), estimateTradeDays(days));
+        log.info("DB results: {}, expected results: {} ", (double) quotes.size(), DateParser.estimateTradeDays(days));
         if (quotes.size() > 0) {
-            log.info("Requested start date: {}, Found start date: {}, {}", start, quotes.get(0).getDate(), compareTradeDays(start, quotes.get(0).getDate()));
-            log.info("Requested end date: {}, Found end date: {}, {}", end, quotes.get(quotes.size() - 1).getDate(), compareTradeDays(end, quotes.get(quotes.size() - 1).getDate()));
+            log.info("Requested start date: {}, Found start date: {}, {}", start, quotes.get(0).getDate(), DateParser.compareTradeDays(start, quotes.get(0).getDate()));
+            log.info("Requested end date: {}, Found end date: {}, {}", end, quotes.get(quotes.size() - 1).getDate(), DateParser.compareTradeDays(end, quotes.get(quotes.size() - 1).getDate()));
         }
 
-//        if (quotes.size() > 0 && compareTradeDays(start, quotes.get(0).getDate()) >= 0 &&
-//                compareTradeDays(end, quotes.get(quotes.size() - 1).getDate()) > 0) {
-//            log.info("Updating DB results");
-//
-//            log.info("new start date: {}, end date: {}", quotes.get(quotes.size() - 1).getDate(), end);
-//            return updateQuotes(symbol, quotes, quotes.get(quotes.size() - 1).getDate(), end);
-//        } else
-        if (quotes.size() > 0 && (double) quotes.size() - estimateTradeDays(days) >= -10.0
-                && compareTradeDays(start, quotes.get(0).getDate()) >= 0 &&
-                compareTradeDays(end, quotes.get(quotes.size() - 1).getDate()) <= 0) {
+        if (quotes.size() > 0 && (double) quotes.size() - DateParser.estimateTradeDays(days) >= -10.0
+                && DateParser.compareTradeDays(start, quotes.get(0).getDate()) >= 0 &&
+                DateParser.compareTradeDays(end, quotes.get(quotes.size() - 1).getDate()) <= 0) {
             log.info("Using DB results");
             return quotes;
         }
@@ -117,40 +111,5 @@ public class QuoteServiceImpl
         }
         quoteRepo.save(filteredQuotes);
         return quotes;
-    }
-
-    private Date toTradeDay(Date date, int modifier) {
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(date);
-        cal.set(Calendar.MINUTE, 0);
-        cal.set(Calendar.SECOND, 0);
-        cal.set(Calendar.MILLISECOND,0);
-        cal.set(Calendar.HOUR_OF_DAY, modifier);
-
-        if ((cal.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY)) {
-            cal.add(Calendar.DATE, -1);
-        } else if ((cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY)){
-            cal.add(Calendar.DATE, -2);
-        }
-        return cal.getTime();
-    }
-
-    private Date standardizeDate(Date date) {
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(date);
-        cal.set(Calendar.MINUTE, 0);
-        cal.set(Calendar.SECOND, 0);
-        cal.set(Calendar.MILLISECOND,0);
-        cal.set(Calendar.HOUR_OF_DAY, 0);
-        return cal.getTime();
-    }
-    private double estimateTradeDays(double days) {
-        double workDaysPerWeek = 5.0 / 7.0;
-        double holidays = 9.0;
-        return Math.ceil((days * workDaysPerWeek) - holidays);
-    }
-
-    private int compareTradeDays(Date requestedDate, Date foundDate) {
-        return standardizeDate(requestedDate).compareTo(standardizeDate(foundDate));
     }
 }
