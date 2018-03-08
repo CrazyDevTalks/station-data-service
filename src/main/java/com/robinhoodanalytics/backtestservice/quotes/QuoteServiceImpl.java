@@ -32,7 +32,8 @@ public class QuoteServiceImpl
     }
 
     public List<Quote> retrieveQuotes(String symbol, Date from, Date to)
-            throws RestClientException {
+            throws RestClientException
+    {
         Date start = DateParser.toTradeDay(from, 0);
         Date end = DateParser.toTradeDay(to, 23);
 
@@ -48,27 +49,45 @@ public class QuoteServiceImpl
             log.info("Requested end date: {}, Found end date: {}, {}", end, quotes.get(quotes.size() - 1).getDate(), DateParser.compareTradeDays(end, quotes.get(quotes.size() - 1).getDate()));
         }
 
-        if (quotes.size() > 0 && (double) quotes.size() - DateParser.estimateTradeDays(days) >= -10.0
-                && DateParser.compareTradeDays(start, quotes.get(0).getDate()) >= 0 &&
-                DateParser.compareTradeDays(end, quotes.get(quotes.size() - 1).getDate()) <= 0) {
+        if (quotes.size() > 0 &&
+            (double) quotes.size() - DateParser.estimateTradeDays(days) >= -10.0 &&
+            DateParser.compareTradeDays(start, quotes.get(0).getDate()) >= 0 &&
+            DateParser.compareTradeDays(end, quotes.get(quotes.size() - 1).getDate()) <= 0) {
             log.info("Using DB results");
             return quotes;
         }
         else {
             quoteRepo.delete(quotes);
-            return addQuotes(symbol, start, end);
+            return addQuotes(symbol, diff);
         }
     }
 
-    private List<Quote> addQuotes(String symbol, Date from, Date to) {
+    private List<Quote> addQuotes(String symbol, long timeRange) {
         RestTemplate restTemplate = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        SimpleDateFormat dt1 = new SimpleDateFormat("yyyy-MM-dd");
+        String range;
+        String interval = "1d";
 
-        HttpEntity<String> entity = new HttpEntity<>("{\"ticker\": \""+symbol+"\", \"start\": \"" + dt1.format(from) + "\", \"end\": \"" + dt1.format(to) + "\"}", headers);
+        if (timeRange <= 5) {
+            range = "5d";
+        } else if (timeRange <= 30) {
+            range = "1mo";
+        } else if (timeRange <= 90) {
+            range = "3mo";
+        } else if (timeRange <= 365) {
+            range = "1y";
+        } else if (timeRange <= 730) {
+            range = "2y";
+        } else if (timeRange <= 1825) {
+            range = "5y";
+        } else {
+            range = "10y";
+        }
+
+        HttpEntity<String> entity = new HttpEntity<>("{\"ticker\": \""+symbol+"\", \"interval\": \"" + interval + "\", \"range\": \"" + range + "\"}", headers);
 
         Quote[] response = restTemplate.postForObject("http://localhost:9000/api/quote", entity, Quote[].class);
 
