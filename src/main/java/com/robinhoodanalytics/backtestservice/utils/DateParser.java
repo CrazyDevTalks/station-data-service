@@ -10,7 +10,8 @@ public class DateParser {
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND,0);
-        cal.set(Calendar.HOUR_OF_DAY, modifier);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.add(Calendar.HOUR_OF_DAY, modifier);
 
         if ((cal.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY)) {
             cal.add(Calendar.DATE, -1);
@@ -29,6 +30,7 @@ public class DateParser {
         cal.set(Calendar.HOUR_OF_DAY, 0);
         return cal.getTime();
     }
+
     public static double estimateTradeDays(double days) {
         double workDaysPerWeek = 5.0 / 7.0;
         double holidays = 9.0;
