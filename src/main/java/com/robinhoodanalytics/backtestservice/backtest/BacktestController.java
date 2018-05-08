@@ -1,7 +1,7 @@
 package com.robinhoodanalytics.backtestservice.backtest;
 
 import com.robinhoodanalytics.backtestservice.BacktestServiceApplication;
-import com.robinhoodanalytics.backtestservice.Trainer.TrainerService;
+import com.robinhoodanalytics.backtestservice.trainer.TrainerService;
 import com.robinhoodanalytics.backtestservice.models.Quote;
 import com.robinhoodanalytics.backtestservice.quotes.QuoteService;
 import org.slf4j.Logger;
@@ -49,7 +49,9 @@ public class BacktestController {
         }
     }
 
-    @RequestMapping(method = RequestMethod.POST)
+    @RequestMapping(
+            value = "/train",
+            method = RequestMethod.POST)
     ResponseEntity<List<Quote>> train(@RequestParam(value = "ticker") String symbol,
                                          @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
                                          @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to)

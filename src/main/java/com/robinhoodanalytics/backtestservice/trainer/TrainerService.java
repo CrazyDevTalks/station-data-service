@@ -1,4 +1,4 @@
-package com.robinhoodanalytics.backtestservice.Trainer;
+package com.robinhoodanalytics.backtestservice.trainer;
 
 import org.springframework.http.ResponseEntity;
 

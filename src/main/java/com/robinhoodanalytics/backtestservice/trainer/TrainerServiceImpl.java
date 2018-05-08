@@ -1,8 +1,7 @@
-package com.robinhoodanalytics.backtestservice.Trainer;
+package com.robinhoodanalytics.backtestservice.trainer;
 
 import com.robinhoodanalytics.backtestservice.models.Quote;
 import com.robinhoodanalytics.backtestservice.quotes.QuoteService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
