@@ -57,11 +57,7 @@ public class BacktestController {
                                          @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to)
     {
         try {
-            HttpHeaders responseHeaders = new HttpHeaders();
-            responseHeaders.setContentType(MediaType.APPLICATION_JSON);
-            _trainService.train(symbol, from, to);
-
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return _trainService.train(symbol, from, to);
         } catch (RestClientException e) {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }
