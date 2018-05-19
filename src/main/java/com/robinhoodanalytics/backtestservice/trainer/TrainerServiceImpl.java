@@ -67,9 +67,8 @@ public class TrainerServiceImpl implements TrainerService {
 
                         double[] input = {volChange, closeBinary, openBinary, highBinary, lowBinary};
 
-                        AggregatedQuote aq = new AggregatedQuote(input);
+                        AggregatedQuote aq = new AggregatedQuote(q.getDate(), input);
                         items[ctr++] = aq;
-                        log.info("tracer: {}", items.toString());
                     }
                     previousQ = q;
                 }

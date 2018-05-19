@@ -51,7 +51,7 @@ public class BacktestController {
 
     @RequestMapping(
             value = "/train",
-            method = RequestMethod.POST)
+            method = RequestMethod.GET)
     ResponseEntity<List<Quote>> train(@RequestParam(value = "ticker") String symbol,
                                          @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
                                          @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to)
