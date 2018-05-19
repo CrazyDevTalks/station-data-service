@@ -1,6 +1,7 @@
 package com.robinhoodanalytics.backtestservice.trainer;
 
 import com.robinhoodanalytics.backtestservice.BacktestServiceApplication;
+import com.robinhoodanalytics.backtestservice.models.AggregatedQuote;
 import com.robinhoodanalytics.backtestservice.models.Quote;
 import com.robinhoodanalytics.backtestservice.quotes.QuoteService;
 import org.slf4j.Logger;
@@ -13,10 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 
-import java.util.ArrayDeque;
-import java.util.Date;
-import java.util.Deque;
-import java.util.List;
+import java.math.BigDecimal;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component("trainerService")
@@ -26,6 +25,8 @@ public class TrainerServiceImpl implements TrainerService {
 
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
+    long totalVolume = 0;
+
     @Override
     public ResponseEntity train(String symbol, Date from, Date to) {
         try {
@@ -34,26 +35,46 @@ public class TrainerServiceImpl implements TrainerService {
             HttpHeaders responseHeaders = new HttpHeaders();
             responseHeaders.setContentType(MediaType.APPLICATION_JSON);
             List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, from, to);
+            AggregatedQuote[] items = new AggregatedQuote[quotes.size()];
 
             if (quotes != null) {
                 Deque<Quote> window = new ArrayDeque<>();
+                String name = "Run1";
+                String[] featureNames = {"Volume Change", "Close", "Open", "High", "Low"};
                 long avgVolume = 0;
-                long totalVolume = 0;
+                int ctr = 0;
+                Quote previousQ = null;
+
                 for (Quote q: quotes) {
+                    Quote removed = null;
                     if (window.size() < 90) {
                         window.push(q);
                     } else if (window.size() > 90) {
                         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
                     } else if (window.size() == 90) {
-                        totalVolume -= window.removeFirst().getVolume();
+                        removed = window.removeFirst();
                         window.push(q);
                     }
-                    totalVolume += q.getVolume();
-                    avgVolume = totalVolume / window.size();
-                    log.info("vol: {} {} {} {}", totalVolume, window.size(),  avgVolume, q.getVolume());
+
+                    avgVolume = getAverageVolume(removed, q, window.size());
+
+                    if (previousQ != null) {
+                        double volChange = normalizeVolumeChange(avgVolume, q.getVolume());
+                        double closeBinary = normalizePriceToBinary(previousQ.getClose(), q.getClose());
+                        double openBinary = normalizePriceToBinary(previousQ.getOpen(), q.getOpen());
+                        double highBinary = normalizePriceToBinary(previousQ.getHigh(), q.getHigh());
+                        double lowBinary = normalizePriceToBinary(previousQ.getLow(), q.getLow());
+
+                        double[] input = {volChange, closeBinary, openBinary, highBinary, lowBinary};
+
+                        AggregatedQuote aq = new AggregatedQuote(input);
+                        items[ctr++] = aq;
+                        log.info("tracer: {}", items.toString());
+                    }
+                    previousQ = q;
                 }
 
-                return new ResponseEntity<>(quotes, responseHeaders, HttpStatus.OK);
+                return new ResponseEntity<>(items, responseHeaders, HttpStatus.OK);
             } else {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
@@ -64,5 +85,24 @@ public class TrainerServiceImpl implements TrainerService {
         }
     }
 
+    private long getAverageVolume(Quote removed, Quote current, int size) {
+        if (removed != null) {
+            totalVolume -= removed.getVolume();
+        }
+        totalVolume += current.getVolume();
+        return totalVolume / size;
+    }
 
+    private double normalizeVolumeChange(long avgVol, long vol) {
+        double change = (double)((float)vol/avgVol);
+        return new BigDecimal(String.valueOf(change)).setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
+    }
+
+    private double normalizePriceToBinary(BigDecimal previousVal, BigDecimal newVal) {
+        int comp = newVal.compareTo(previousVal);
+        if (comp == -1) {
+            return 0;
+        }
+        return comp;
+    }
 }

@@ -1,13 +1,12 @@
 package com.robinhoodanalytics.backtestservice.models;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 
 public class AggregatedQuote {
-    public String[] _featureNames;
-    public int[] _input;
+    public double[] _input;
 
-    public AggregatedQuote(String[] featureNames, int[] input) {
-        this._featureNames = featureNames;
+    public AggregatedQuote(double[] input) {
         this._input = input;
     }
 }
