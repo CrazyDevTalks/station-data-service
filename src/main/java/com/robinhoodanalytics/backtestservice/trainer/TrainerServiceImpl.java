@@ -69,8 +69,7 @@ public class TrainerServiceImpl implements TrainerService {
                         double[] previousOutput = {closeBinary};
 
                         int prevCtr = ctr - 1;
-                        if (prevCtr > 0 && items[prevCtr] != null) {
-
+                        if (prevCtr >= 0 && items[prevCtr] != null) {
                             items[prevCtr].set_output(previousOutput);
                         }
 
