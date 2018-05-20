@@ -70,10 +70,10 @@ public class TrainerServiceImpl implements TrainerService {
 
                         int prevCtr = ctr - 1;
                         if (prevCtr >= 0 && items[prevCtr] != null) {
-                            items[prevCtr].set_output(previousOutput);
+                            items[prevCtr].setOutput(previousOutput);
                         }
 
-                        AggregatedQuote aq = new AggregatedQuote(q.getDate(), input, null);
+                        AggregatedQuote aq = new AggregatedQuote(input, null);
                         items[ctr++] = aq;
                     }
                     previousQ = q;
