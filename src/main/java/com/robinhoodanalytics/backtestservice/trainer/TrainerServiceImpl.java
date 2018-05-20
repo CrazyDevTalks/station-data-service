@@ -66,8 +66,15 @@ public class TrainerServiceImpl implements TrainerService {
                         double lowBinary = normalizePriceToBinary(previousQ.getLow(), q.getLow());
 
                         double[] input = {volChange, closeBinary, openBinary, highBinary, lowBinary};
+                        double[] previousOutput = {closeBinary};
 
-                        AggregatedQuote aq = new AggregatedQuote(q.getDate(), input);
+                        int prevCtr = ctr - 1;
+                        if (prevCtr > 0 && items[prevCtr] != null) {
+
+                            items[prevCtr].set_output(previousOutput);
+                        }
+
+                        AggregatedQuote aq = new AggregatedQuote(q.getDate(), input, null);
                         items[ctr++] = aq;
                     }
                     previousQ = q;
