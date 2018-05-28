@@ -18,11 +18,12 @@ public class RollingAverage {
     }
 
     public void add(BigDecimal x) {
-        samples[0] = BigDecimal.ZERO;
         total = total.subtract(samples[index]);
         samples[index] = x;
         total = total.add(x);
-        if (++index == size) index = 0; // cheaper than modulus
+        if (++index == size) {
+            index = 0; // cheaper than modulus
+        }
     }
 
     public BigDecimal getAverage() {

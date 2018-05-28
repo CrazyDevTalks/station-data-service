@@ -2,7 +2,11 @@ package com.robinhoodanalytics.backtestservice.utils;
 
 import org.apache.commons.math3.stat.StatUtils;
 
+import java.math.BigDecimal;
+
 public class Statistics {
+    public static final BigDecimal TWO = new BigDecimal(2);
+
     public static double[] drawdown(double[] series) {
         double max = Double.MIN_VALUE;
         double ddPct = Double.MAX_VALUE;
@@ -33,4 +37,11 @@ public class Statistics {
 
         return returns;
     }
-}
+
+    public static BigDecimal percentDifference(BigDecimal val1, BigDecimal val2) {
+        return val1.subtract(val2).abs().divide(val1.add(val2).divide(TWO));
+    }
+
+    public static BigDecimal percentChange(BigDecimal originalValue, BigDecimal newValue) {
+        return newValue.subtract(originalValue).divide(originalValue);
+    }}

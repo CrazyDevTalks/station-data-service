@@ -5,6 +5,8 @@ import com.robinhoodanalytics.backtestservice.models.Signal;
 import com.robinhoodanalytics.backtestservice.models.StockRank;
 import com.robinhoodanalytics.backtestservice.quotes.QuoteService;
 import com.robinhoodanalytics.backtestservice.strategy.BuyAndHold;
+import com.robinhoodanalytics.backtestservice.utils.RollingAverage;
+import com.robinhoodanalytics.backtestservice.utils.Statistics;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -46,12 +48,33 @@ public class BacktestMainServiceImpl
     public List<Signal> trainMeanReversion(String symbol,
                                                            Date from,
                                                            Date to,
-                                                           int shortTermStart,
-                                                           int longTermStart,
-                                                           int shortTermEnd,
-                                                           int longTermEnd
+                                                           int shortTermWindow,
+                                                           int longTermWindow
     )
     {
-        return new ArrayList<>();
+        List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, from, to);
+
+        RollingAverage shortTerm = new RollingAverage(shortTermWindow);
+        RollingAverage longTerm = new RollingAverage(longTermWindow);
+        RollingAverage volumeWindow = new RollingAverage(longTermWindow);
+        List<Signal> results = new ArrayList<>();
+
+        int preload = 0;
+
+        for (Quote quote : quotes) {
+            shortTerm.add(quote.getClose());
+            longTerm.add(quote.getClose());
+            if (preload < longTermWindow) {
+                preload++;
+            } else {
+                BigDecimal shortAvg = shortTerm.getAverage();
+                BigDecimal longAvg = longTerm.getAverage();
+                BigDecimal pctChange = Statistics.percentDifference(shortAvg, longAvg).abs();
+                BigDecimal volumeChange = Statistics.percentChange(volumeWindow.getAverage(), new BigDecimal(quote.getVolume()));
+                Signal sig = new Signal(quote.getDate(), null,
+                        pctChange, shortAvg, longAvg, quote.getClose());
+            }
+        }
+        return results;
     }
 }

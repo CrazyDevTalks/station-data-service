@@ -18,24 +18,20 @@ public class Signal {
 
     private BigDecimal longTermAverage;
 
+    private BigDecimal volumeChange;
+
     private BigDecimal close;
 
-    private BigDecimal shortTermTotal;
-
-    private BigDecimal longTermTotal;
-
-    private BigDecimal total;
-
-    public Signal(Date date, Action action, BigDecimal deviation, BigDecimal shortTermAverage, BigDecimal longTermAverage, BigDecimal close, BigDecimal shortTermTotal, BigDecimal longTermTotal, BigDecimal total) {
+    public Signal(Date date, Action action, BigDecimal deviation,
+                  BigDecimal shortTermAverage, BigDecimal longTermAverage,
+                  BigDecimal volumeChange, BigDecimal close) {
         this.date = date;
         this.action = action;
         this.deviation = deviation;
         this.shortTermAverage = shortTermAverage;
         this.longTermAverage = longTermAverage;
+        this.volumeChange = volumeChange;
         this.close = close;
-        this.shortTermTotal = shortTermTotal;
-        this.longTermTotal = longTermTotal;
-        this.total = total;
     }
 
     public Date getDate() {
@@ -86,27 +82,4 @@ public class Signal {
         this.close = close;
     }
 
-    public BigDecimal getShortTermTotal() {
-        return shortTermTotal;
-    }
-
-    public void setShortTermTotal(BigDecimal shortTermTotal) {
-        this.shortTermTotal = shortTermTotal;
-    }
-
-    public BigDecimal getLongTermTotal() {
-        return longTermTotal;
-    }
-
-    public void setLongTermTotal(BigDecimal longTermTotal) {
-        this.longTermTotal = longTermTotal;
-    }
-
-    public BigDecimal getTotal() {
-        return total;
-    }
-
-    public void setTotal(BigDecimal total) {
-        this.total = total;
-    }
-}
+ }
