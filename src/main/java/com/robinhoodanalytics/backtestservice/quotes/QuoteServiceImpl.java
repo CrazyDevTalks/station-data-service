@@ -52,7 +52,9 @@ public class QuoteServiceImpl
         if (quotes.size() > 0 &&
             (double) quotes.size() - DateParser.estimateTradeDays(days) >= -10.0 &&
             DateParser.compareTradeDays(start, quotes.get(0).getDate()) >= 0 &&
-            DateParser.compareTradeDays(DateParser.toTradeDay(end, -3), quotes.get(quotes.size() - 1).getDate()) <= 0) {
+            DateParser.compareTradeDays(DateParser.toTradeDay(end, 0), quotes.get(quotes.size() - 1).getDate()) <= 0) {
+            log.info("Expected: {}, Found: {} ", DateParser.toTradeDay(end, 0), quotes.get(quotes.size() - 1).getDate());
+
             log.info("Using DB results");
             return quotes;
         }

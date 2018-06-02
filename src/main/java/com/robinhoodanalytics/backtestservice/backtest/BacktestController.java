@@ -1,6 +1,7 @@
 package com.robinhoodanalytics.backtestservice.backtest;
 
 import com.robinhoodanalytics.backtestservice.BacktestServiceApplication;
+import com.robinhoodanalytics.backtestservice.models.Signal;
 import com.robinhoodanalytics.backtestservice.trainer.TrainerService;
 import com.robinhoodanalytics.backtestservice.models.Quote;
 import com.robinhoodanalytics.backtestservice.quotes.QuoteService;
@@ -83,18 +84,17 @@ public class BacktestController {
 
         @RequestMapping(
                 value = "/strategy/mean-reversion/train",
-                method = RequestMethod.POST)
+                method = RequestMethod.GET)
         @ResponseBody
-        public String meanReversionTrainer(@RequestParam("ticker") String symbol,
+        public List<Signal> meanReversionTrainer(@RequestParam("symbol") String symbol,
                                            @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
                                            @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to,
-                                           @RequestParam("shortStart") int shortTermStart,
-                                           @RequestParam("longStart") int longTermStart,
-                                           @RequestParam("shortEnd") int shortTermEnd,
-                                           @RequestParam("longEnd") int longTermEnd
+                                           @RequestParam(value = "d", required = false) BigDecimal deviation,
+                                           @RequestParam("s") int shortTerm,
+                                           @RequestParam("l") int longTerm
 
         ) {
 
-        return "Get some Foos with Header";
+        return _backtestMainService.executeMeanReversion(symbol, from, to, deviation, shortTerm, longTerm);
         }
 }

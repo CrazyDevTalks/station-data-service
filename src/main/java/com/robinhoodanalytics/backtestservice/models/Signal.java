@@ -82,4 +82,6 @@ public class Signal {
         this.close = close;
     }
 
+    public BigDecimal getVolumeChange() { return volumeChange; }
+
  }

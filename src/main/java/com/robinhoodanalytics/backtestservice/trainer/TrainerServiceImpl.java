@@ -30,8 +30,6 @@ public class TrainerServiceImpl implements TrainerService {
     @Override
     public ResponseEntity train(String symbol, Date from, Date to) {
         try {
-            log.info("START");
-
             HttpHeaders responseHeaders = new HttpHeaders();
             responseHeaders.setContentType(MediaType.APPLICATION_JSON);
             List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, from, to);
@@ -46,6 +44,8 @@ public class TrainerServiceImpl implements TrainerService {
                 Quote previousQ = null;
 
                 for (Quote q: quotes) {
+                    //log.info("Curr Date: {} ", q.getDate().toString());
+
                     Quote removed = null;
                     if (window.size() < 90) {
                         window.push(q);
@@ -71,6 +71,7 @@ public class TrainerServiceImpl implements TrainerService {
                         int prevCtr = ctr - 1;
                         if (prevCtr >= 0 && items[prevCtr] != null) {
                             items[prevCtr].setOutput(previousOutput);
+                            //log.info("Date: {} Close: {} Tomorrow Close: {}", previousQ.getDate().toString(), previousQ.getClose(), q.getClose());
                         }
 
                         AggregatedQuote aq = new AggregatedQuote(input, null);
