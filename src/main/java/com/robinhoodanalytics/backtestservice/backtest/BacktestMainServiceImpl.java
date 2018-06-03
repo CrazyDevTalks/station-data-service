@@ -28,10 +28,20 @@ public class BacktestMainServiceImpl
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
     @Override
-    public List<Signal> executeMeanReversion(String symbol, Date from, Date to, BigDecimal deviation, int shortTerm, int longTerm)
+    public List<Signal> getMeanReversionTimeline(String symbol, Date from, Date to, int shortTerm, int longTerm)
             throws Exception
     {
-        return trainMeanReversion(symbol, from, to, deviation, shortTerm, longTerm);
+        return trainMeanReversion(symbol, from, to, shortTerm, longTerm);
+    }
+
+    @Override
+    public BacktestSummary getMeanReversionResults(String symbol, Date from, Date to, BigDecimal deviation, int shortTerm, int longTerm)
+        throws Exception
+    {
+        List<Signal> signals = trainMeanReversion(symbol, from, to, shortTerm, longTerm);
+        BacktestSummary summary = calculateReturns(signals, deviation);
+        log.info("summary: {}", summary);
+        return summary;
     }
 
     @Override
@@ -58,7 +68,6 @@ public class BacktestMainServiceImpl
     private List<Signal> trainMeanReversion(String symbol,
                                            Date from,
                                            Date to,
-                                           BigDecimal deviation,
                                            int shortTermWindow,
                                            int longTermWindow
     ) throws Exception
@@ -95,8 +104,8 @@ public class BacktestMainServiceImpl
                 addToQueue(volumeChange, recentVolumeChanges, 10);
                 addToQueue(quote.getClose(), recentPrices, 10);
 
-                Action a = getMeanReversionDirection(quote.getClose(), shortAvg, longAvg, recentVolumeChanges, recentPrices);
-                Signal sig = new Signal(quote.getDate(), a,
+                Action action = getMeanReversionDirection(quote.getClose(), shortAvg, longAvg, recentVolumeChanges, recentPrices);
+                Signal sig = new Signal(quote.getDate(), action,
                         pctChange, shortAvg, longAvg, volumeChange, quote.getClose());
                 results.add(sig);
             }
@@ -127,19 +136,44 @@ public class BacktestMainServiceImpl
         return null;
     }
 
-    private void calculateReturns(List<Signal> signals, BigDecimal deviation) {
-        int sellOrders
+    private BacktestSummary calculateReturns(List<Signal> signals, BigDecimal deviation) {
+        BacktestSummary results = new BacktestSummary();
+
         for (Signal signal : signals) {
             if (Statistics.percentDifference(signal.getShortTermAverage(), signal.getLongTermAverage()).abs().compareTo(deviation) <= 0) {
-                if (signal.getAction() == Action.SELL) {
-
+                if (signal.getAction() == Action.SELL
+                        || signal.getAction() == Action.STRONGSELL) {
+                    if (results.buys.size() > 0) {
+                        results.trades++;
+                        BigDecimal holding = results.buys.removeFirst();
+                        BigDecimal profit = signal.getClose().subtract(holding);
+                        results.invested = results.invested.add(holding);
+                        results.profit = results.profit.add(profit);
+                    }
+                } else if (signal.getAction() == Action.BUY
+                        || signal.getAction() == Action.STRONGBUY) {
+                    results.trades++;
+                    results.buys.add(signal.getClose());
                 }
             }
         }
+
+        log.info("profit: {} {}", results.profit, results.invested);
+
+        if (results.profit.compareTo(BigDecimal.ZERO) != 0 && results.invested.compareTo(BigDecimal.ZERO) != 0) {
+            results.returns = results.profit.divide(results.invested);
+        }
+
+        return results;
     }
 
-    private class BacktestResults {
-        
+    public class BacktestSummary {
+        public int trades = 0;
+        public BigDecimal profit = BigDecimal.ZERO;
+        public BigDecimal invested = BigDecimal.ZERO;
+        public BigDecimal returns = BigDecimal.ZERO;
+        Deque<BigDecimal> buys = new ArrayDeque<>();
+
     }
 
 }

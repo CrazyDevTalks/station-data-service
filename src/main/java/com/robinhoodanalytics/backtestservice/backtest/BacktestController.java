@@ -82,19 +82,43 @@ public class BacktestController {
         return "Get some Foos with Header";
     }
 
-        @RequestMapping(
-                value = "/strategy/mean-reversion/train",
-                method = RequestMethod.GET)
-        @ResponseBody
-        public List<Signal> meanReversionTrainer(@RequestParam("symbol") String symbol,
-                                           @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
-                                           @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to,
-                                           @RequestParam(value = "d", required = false) BigDecimal deviation,
-                                           @RequestParam("s") int shortTerm,
-                                           @RequestParam("l") int longTerm
+    @RequestMapping(
+            value = "/strategy/mean-reversion/train",
+            method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity meanReversionTrainer(@RequestParam("symbol") String symbol,
+                                                                        @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
+                                                                        @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to,
+                                                                        @RequestParam(value = "d", required = false) BigDecimal deviation,
+                                                                        @RequestParam("s") int shortTerm,
+                                                                        @RequestParam("l") int longTerm
 
-        ) {
+    ) {
 
-        return _backtestMainService.executeMeanReversion(symbol, from, to, deviation, shortTerm, longTerm);
+        try {
+            return ResponseEntity.ok(_backtestMainService.getMeanReversionResults(symbol, from, to, deviation, shortTerm, longTerm));
+        } catch (Exception e) {
+            log.error("Error: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
+    }
+
+    @RequestMapping(
+            value = "/strategy/mean-reversion/chart",
+            method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity meanReversionChart(@RequestParam("symbol") String symbol,
+                                             @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
+                                             @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to,
+                                             @RequestParam("s") int shortTerm,
+                                             @RequestParam("l") int longTerm
+
+    ) {
+
+        try {
+            return ResponseEntity.ok(_backtestMainService.getMeanReversionTimeline(symbol, from, to, shortTerm, longTerm));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e);
+        }
+    }
 }
