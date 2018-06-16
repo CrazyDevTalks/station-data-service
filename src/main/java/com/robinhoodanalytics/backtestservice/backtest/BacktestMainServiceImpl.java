@@ -44,7 +44,9 @@ public class BacktestMainServiceImpl
     {
         List<Signal> signals = trainMeanReversion(symbol, from, to, shortTerm, longTerm, bbandPeriod);
         BacktestSummary summary = calculateReturns(signals, deviation);
-        log.info("summary: {}", summary);
+        Signal lastSignal = signals.get(signals.size() - 1);
+        summary.lastPrice = lastSignal.getClose();
+        summary.lastVolume = lastSignal.getVolume();
         return summary;
     }
 
@@ -74,8 +76,7 @@ public class BacktestMainServiceImpl
                                            Date to,
                                            int shortTermWindow,
                                            int longTermWindow,
-                                           int bbandPeriod
-    ) throws Exception
+                                           int bbandPeriod) throws Exception
     {
         log.info("trainMeanReversion params: {} {} {}", symbol, from, to);
 
@@ -110,13 +111,13 @@ public class BacktestMainServiceImpl
 
                 BigDecimal volumeChange = Statistics.percentChange(volumeWindow.getAverage(), new BigDecimal(quote.getVolume()));
 
-                addToQueue(volumeChange, recentVolumeChanges, 10);
-                addToQueue(quote.getClose(), recentPrices, 10);
+                recentVolumeChanges = addToQueue(volumeChange, recentVolumeChanges, 10);
+                recentPrices = addToQueue(quote.getClose(), recentPrices, 10);
 
                 Action action = getDecision(quote, shortAvg, longAvg, recentVolumeChanges, recentPrices, bband.getSamples());
 
                 Signal sig = new Signal(quote.getDate(), action,
-                        pctChange, shortAvg, longAvg, volumeChange, quote.getClose());
+                        pctChange, shortAvg, longAvg, volumeChange, quote.getClose(), quote.getVolume());
                 results.add(sig);
             }
         }
@@ -135,6 +136,7 @@ public class BacktestMainServiceImpl
         BigDecimal lastPrice = quote.getClose();
         BigDecimal previousPrice = null;
         int lowVolumeDays = 0;
+        int highVolumeDays = 0;
         int downward = 0;
         int upward = 0;
         BigDecimal lowVolumeThreshold = new BigDecimal(-0.3);
@@ -143,7 +145,7 @@ public class BacktestMainServiceImpl
         Iterator volumeChangesIt = volumeChanges.iterator();
 
         List<List<BigDecimal>> band = getBollingerBand(bband, bband.length);
-        log.info("Band: {}", band);
+        log.info("Band: {} {}", lastPrice, band);
 
         BigDecimal lower = band.get(0).get(0);
         BigDecimal mid = band.get(1).get(0);
@@ -153,15 +155,18 @@ public class BacktestMainServiceImpl
         Boolean longTarget = (lastPrice.compareTo(mid) <= 0) && (lastPrice.compareTo(lower) >= 0);
         Boolean bbShort = false;
         Boolean bbLong = false;
+        Boolean bbBroken = false;
 
         if (volumeChanges.size() == prices.size()) {
             while (pricesIt.hasNext() && volumeChangesIt.hasNext()) {
                 BigDecimal volumeRatio = (BigDecimal) volumeChangesIt.next();
                 BigDecimal price = (BigDecimal) pricesIt.next();
-                log.info("Volume: {} {}", volumeRatio, lowVolumeThreshold);
+                // log.info("Volume: {} {}", volumeRatio, lowVolumeThreshold);
 
                 if (volumeRatio.compareTo(lowVolumeThreshold) < 0) {
                     lowVolumeDays++;
+                } else if (volumeRatio.compareTo(highVolumeThreshold) > 0) {
+                    highVolumeDays++;
                 }
 
                 if (previousPrice != null) {
@@ -172,45 +177,80 @@ public class BacktestMainServiceImpl
                     }
                 }
 
-                if (shortTarget) {
-                    if(price.compareTo(upper) > 0) {
-                        bbShort = true;
-                    }
-                } else if (longTarget) {
-                    if(price.compareTo(lower) < 0) {
-                        bbLong = true;
+                if (!bbBroken) {
+                    if (shortTarget) {
+                        log.info("Short?: {} {}", price, upper);
+
+                        if(price.compareTo(upper) > 0) {
+                            bbShort = true;
+                            bbBroken = true;
+                        }
+                    } else if (longTarget) {
+                        log.info("Long?: {} {}", price, lower);
+
+                        if(price.compareTo(lower) < 0) {
+                            bbLong = true;
+                            bbBroken = true;
+                        }
                     }
                 }
+
                 previousPrice = price;
             }
         }
 
-        if (lowVolumeDays > 3 && (downward >= 5 || upward >= 5)) {
-            if (downward >= 5) {
-                recommendation = Action.BUY;
-            } else if (upward >= 5) {
+        // log.info("IT: {} {} {} {}", quote.getDate(), prices.toString(), lowVolumeDays, highVolumeDays);
+        log.info("DAY: {} {} lows:{} Highs:{} downs:{} ups:{} vol:{}",
+                quote.getDate(), quote.getClose(), lowVolumeDays,
+                highVolumeDays, downward, upward, quote.getVolume()
+        );
+
+        if (lowVolumeDays > highVolumeDays && lowVolumeDays > 2) {
+            log.info("LOW VOLUME DAYS");
+
+            if (downward > upward) {
                 recommendation = Action.SELL;
+            } else if (downward < upward) {
+                recommendation = Action.BUY;
             }
-        } else if (lastPrice.compareTo(avg30) < 0 && lastPrice.compareTo(avg90) < 0) {
-            recommendation = Action.BUY;
-        } else if (lastPrice.compareTo(avg30) > 0 && lastPrice.compareTo(avg90) > 0){
-            recommendation = Action.SELL;
+        } else if (lowVolumeDays < highVolumeDays && highVolumeDays > 2) {
+            log.info("HIGH VOLUME DAYS");
+
+            if (downward > upward) {
+                recommendation = Action.SELL;
+            } else if (downward < upward) {
+                recommendation = Action.BUY;
+            }
         }
-        log.info("Recommendation: {} {} {} {} {}", quote.getDate().toString(), recommendation, downward, upward, lowVolumeDays);
+        log.info("recommendation: {}", recommendation);
+
+//        else if (lastPrice.compareTo(avg30) < 0 && lastPrice.compareTo(avg90) < 0) {
+//            recommendation = Action.BUY;
+//        } else if (lastPrice.compareTo(avg30) > 0 && lastPrice.compareTo(avg90) > 0){
+//            recommendation = Action.SELL;
+//        }
+        // log.info("Recommendation: {} {} {} {} {}", quote.getDate().toString(), recommendation, downward, upward, lowVolumeDays);
 
         if (bbShort) {
             if (recommendation == Action.SELL) {
                 recommendation = Action.STRONGSELL;
+            } else if (recommendation == Action.BUY) {
+                recommendation = Action.INDETERMINANT;
             } else {
                 recommendation = Action.SELL;
             }
         } else if (bbLong) {
             if (recommendation == Action.BUY) {
                 recommendation = Action.STRONGBUY;
+            } else if (recommendation == Action.SELL) {
+                recommendation = Action.INDETERMINANT;
             } else {
                 recommendation = Action.BUY;
             }
         }
+        log.info("bb short:{} long: {}", bbShort, bbLong);
+
+        log.info("Final recommendation: {}", recommendation);
 
         return recommendation;
     }
@@ -228,16 +268,14 @@ public class BacktestMainServiceImpl
         return recommendation;
     }
 
-    private BigDecimal addToQueue(BigDecimal value, Deque<BigDecimal> queue, int maxSize) throws Exception{
+    private Deque<BigDecimal> addToQueue(BigDecimal value, Deque<BigDecimal> queue, int maxSize) throws Exception{
         if (queue.size() < maxSize) {
             queue.push(value);
-        } else if (queue.size() > maxSize) {
-            throw new Exception("Too many items in queue");
-        } else if (queue.size() == 90) {
+        } else {
+            queue.removeLast();
             queue.push(value);
-            return queue.removeFirst();
         }
-        return null;
+        return queue;
     }
 
     private BacktestSummary calculateReturns(List<Signal> signals, BigDecimal deviation) {
@@ -245,33 +283,35 @@ public class BacktestMainServiceImpl
         log.info("signals: {}", signals.size());
 
         for (Signal signal : signals) {
-            if (Statistics.percentDifference(signal.getShortTermAverage(), signal.getLongTermAverage()).abs().compareTo(deviation) <= 0) {
-                if (signal.getAction() == Action.SELL
-                        || signal.getAction() == Action.STRONGSELL) {
+            // if (Statistics.percentDifference(signal.getShortTermAverage(), signal.getLongTermAverage()).abs().compareTo(deviation) <= 0) {
+                if (signal.getAction() == Action.STRONGSELL
+                      //  || signal.getAction() == Action.SELL
+                        ) {
                     if (results.buys.size() > 0) {
-                        results.trades++;
+                        results.totalTrades++;
                         log.info("Holdings: {}", results.buys.toString());
 
                         BigDecimal holding = results.buys.removeFirst();
                         BigDecimal profit = signal.getClose().subtract(holding);
                         results.invested = results.invested.add(holding);
-                        results.profit = results.profit.add(profit);
-                        log.info("{} Sold @ {} Profit: {}", holding, signal.getClose(), profit);
+                        results.totalReturns = results.totalReturns.add(profit);
+                        log.info("SELL on {} cost: {} 1@{} Profit: {}", signal.getDate(), holding, signal.getClose(), profit);
                     }
-                } else if (signal.getAction() == Action.BUY
-                        || signal.getAction() == Action.STRONGBUY) {
-                    results.trades++;
+                } else if (signal.getAction() == Action.STRONGBUY
+                     //   || signal.getAction() == Action.BUY
+                        ) {
+                    results.totalTrades++;
                     results.buys.add(signal.getClose());
-                    log.info("Bought @ {}", signal.getClose());
+                    log.info("BUY {} 1@{}", signal.getDate(), signal.getClose());
 
                 }
-            }
+            // }
         }
 
-        log.info("profit: {} {}", results.profit, results.invested);
+        log.info("profit: {} {}", results.totalReturns, results.invested);
 
-        if (results.profit.compareTo(BigDecimal.ZERO) != 0 && results.invested.compareTo(BigDecimal.ZERO) != 0) {
-            results.returns = results.profit.divide(results.invested, 4, RoundingMode.HALF_EVEN);
+        if (results.totalReturns.compareTo(BigDecimal.ZERO) != 0 && results.invested.compareTo(BigDecimal.ZERO) != 0) {
+            results.returns = results.totalReturns.divide(results.invested, 4, RoundingMode.HALF_EVEN);
         }
 
         return results;
@@ -292,10 +332,12 @@ public class BacktestMainServiceImpl
     }
 
     public class BacktestSummary {
-        public int trades = 0;
-        public BigDecimal profit = BigDecimal.ZERO;
+        public int totalTrades = 0;
+        public BigDecimal totalReturns = BigDecimal.ZERO;
         public BigDecimal invested = BigDecimal.ZERO;
         public BigDecimal returns = BigDecimal.ZERO;
+        public long lastVolume;
+        public BigDecimal lastPrice;
         Deque<BigDecimal> buys = new ArrayDeque<>();
     }
 

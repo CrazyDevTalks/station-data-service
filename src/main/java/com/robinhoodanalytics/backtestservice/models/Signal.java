@@ -22,9 +22,11 @@ public class Signal {
 
     private BigDecimal close;
 
+    private long volume;
+    
     public Signal(Date date, Action action, BigDecimal deviation,
                   BigDecimal shortTermAverage, BigDecimal longTermAverage,
-                  BigDecimal volumeChange, BigDecimal close) {
+                  BigDecimal volumeChange, BigDecimal close, long volume) {
         this.date = date;
         this.action = action;
         this.deviation = deviation;
@@ -32,6 +34,7 @@ public class Signal {
         this.longTermAverage = longTermAverage;
         this.volumeChange = volumeChange;
         this.close = close;
+        this.volume = volume;
     }
 
     public Date getDate() {
@@ -84,4 +87,5 @@ public class Signal {
 
     public BigDecimal getVolumeChange() { return volumeChange; }
 
+    public long getVolume() { return volume; }
  }
