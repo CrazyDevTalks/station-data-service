@@ -44,10 +44,14 @@ public class BacktestMainServiceImpl
     {
         List<Signal> signals = trainMeanReversion(symbol, from, to, shortTerm, longTerm, bbandPeriod);
         BacktestSummary summary = calculateReturns(signals, deviation);
-        Signal lastSignal = signals.get(signals.size() - 1);
-        summary.lastPrice = lastSignal.getClose();
-        summary.lastVolume = lastSignal.getVolume();
-        summary.recommendation = lastSignal.getAction();
+
+        if (signals.size() > 0) {
+            Signal lastSignal = signals.get(signals.size() - 1);
+            summary.lastPrice = lastSignal.getClose();
+            summary.lastVolume = lastSignal.getVolume();
+            summary.recommendation = lastSignal.getAction();
+        }
+
         return summary;
     }
 
@@ -100,9 +104,9 @@ public class BacktestMainServiceImpl
             bband.add(quote.getClose());
 
             volumeWindow.add(new BigDecimal(quote.getVolume()));
-            if (preload < longestPeriod) {
-                preload++;
-            } else {
+//            if (preload < longestPeriod) {
+//                preload++;
+//            } else {
 //                BigDecimal shortAvg = shortTerm.getAverage();
 //                BigDecimal longAvg = longTerm.getAverage();
                 BigDecimal shortAvg = BigDecimal.ONE;
@@ -113,6 +117,7 @@ public class BacktestMainServiceImpl
                 BigDecimal volumeChange = Statistics.percentChange(volumeWindow.getAverage(), new BigDecimal(quote.getVolume()));
 
                 recentVolumeChanges = addToQueue(volumeChange, recentVolumeChanges, 10);
+
                 recentPrices = addToQueue(quote.getClose(), recentPrices, 10);
 
                 Action action = getDecision(quote, shortAvg, longAvg, recentVolumeChanges, recentPrices, bband.getSamples());
@@ -120,7 +125,7 @@ public class BacktestMainServiceImpl
                 Signal sig = new Signal(quote.getDate(), action,
                         pctChange, shortAvg, longAvg, volumeChange, quote.getClose(), quote.getVolume());
                 results.add(sig);
-            }
+//            }
         }
         return results;
     }
@@ -247,6 +252,11 @@ public class BacktestMainServiceImpl
     }
 
     private Deque<BigDecimal> addToQueue(BigDecimal value, Deque<BigDecimal> queue, int maxSize) throws Exception{
+        if (value == null) {
+            log.error("Found null value");
+            return queue;
+        }
+
         if (queue.size() < maxSize) {
             queue.push(value);
         } else {
