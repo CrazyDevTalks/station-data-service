@@ -223,7 +223,7 @@ public class BacktestMainServiceImpl
             } else if (recommendation == Action.BUY) {
                 recommendation = Action.INDETERMINANT;
             } else {
-                recommendation = Action.SELL;
+                recommendation = Action.INDETERMINANT;
             }
         } else if (bbLong) {
             if (recommendation == Action.BUY) {
@@ -231,7 +231,7 @@ public class BacktestMainServiceImpl
             } else if (recommendation == Action.SELL) {
                 recommendation = Action.INDETERMINANT;
             } else {
-                recommendation = Action.BUY;
+                recommendation = Action.INDETERMINANT;
             }
         }
 
