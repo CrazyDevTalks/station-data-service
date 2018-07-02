@@ -167,8 +167,6 @@ public class BacktestMainServiceImpl
         BigDecimal mid = bband.mid;
         BigDecimal upper = bband.upper;
 
-        log.info("date: {}", quote.getDate());
-
         printLog("bband: ", quote.getDate(), bband.toString());
 
         Boolean shortTarget = (lastPrice.compareTo(upper) <= 0) && (lastPrice.compareTo(mid) >= 0);
@@ -351,16 +349,16 @@ public class BacktestMainServiceImpl
     private BollingerBand getBollingerBandV2(TimeSeries series) {
         BigDecimal k = new BigDecimal(2);
         ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
-        EMAIndicator avg80 = new EMAIndicator(closePrice, 80);
+        SMAIndicator avg80 = new SMAIndicator(closePrice, 80);
         StandardDeviationIndicator sd80 = new StandardDeviationIndicator(closePrice, 80);
 
         BollingerBandsMiddleIndicator middleBBand = new BollingerBandsMiddleIndicator(avg80);
-        BollingerBandsLowerIndicator lowBBand = new BollingerBandsLowerIndicator(middleBBand, sd80);
-        BollingerBandsUpperIndicator upBBand = new BollingerBandsUpperIndicator(middleBBand, sd80);
 
-        BigDecimal mid = middleBBand.getTimeSeries().getLastBar().getClosePrice().getDelegate();
-        BigDecimal lower = mid.subtract(mid.multiply(k));
-        BigDecimal upper = mid.add(mid.multiply(k));
+        int endIndx = middleBBand.getTimeSeries().getEndIndex();
+
+        BigDecimal mid = middleBBand.getIndicator().getValue(endIndx).getDelegate();
+        BigDecimal lower = mid.subtract(sd80.getValue(endIndx).getDelegate().multiply(k));
+        BigDecimal upper = mid.add(sd80.getValue(endIndx).getDelegate().multiply(k));
 
         return new BollingerBand(lower, mid, upper);
     }
