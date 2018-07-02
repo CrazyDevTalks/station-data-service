@@ -92,6 +92,6 @@ public class Quote {
                 "low=" + low +
                 "close=" + close +
                 "volume=" + volume +
-                '}';
+                "}";
     }
 }
