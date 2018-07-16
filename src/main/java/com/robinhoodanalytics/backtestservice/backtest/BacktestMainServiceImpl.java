@@ -7,8 +7,6 @@ import com.robinhoodanalytics.backtestservice.strategy.BuyAndHold;
 import com.robinhoodanalytics.backtestservice.utils.DateParser;
 import com.robinhoodanalytics.backtestservice.utils.RollingAverage;
 import com.robinhoodanalytics.backtestservice.utils.Statistics;
-import org.apache.tomcat.jni.Error;
-import org.apache.tomcat.jni.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,11 +20,8 @@ import org.ta4j.core.Bar;
 import org.ta4j.core.BaseBar;
 import org.ta4j.core.BaseTimeSeries;
 import org.ta4j.core.TimeSeries;
-import org.ta4j.core.indicators.EMAIndicator;
 import org.ta4j.core.indicators.SMAIndicator;
-import org.ta4j.core.indicators.bollinger.BollingerBandsLowerIndicator;
 import org.ta4j.core.indicators.bollinger.BollingerBandsMiddleIndicator;
-import org.ta4j.core.indicators.bollinger.BollingerBandsUpperIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.statistics.StandardDeviationIndicator;
 
@@ -44,6 +39,8 @@ public class BacktestMainServiceImpl
     QuoteService _quoteService;
 
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
+
+    private static boolean logOn = false;
 
     @Override
     public List<Signal> getMeanReversionTimeline(String symbol, Date from, Date to, int shortTerm, int longTerm, int bbandPeriod)
@@ -292,12 +289,17 @@ public class BacktestMainServiceImpl
         for (Signal signal : signals) {
             if (signal.getAction() == Action.STRONGSELL) {
                 if (results.buys.size() > 0) {
-                    results.totalTrades++;
+                    printLog("Selling on: ", signal.getDate(), results.buys);
 
+                    results.totalTrades++;
                     BigDecimal holding = results.buys.removeFirst();
                     BigDecimal profit = signal.getClose().subtract(holding);
                     results.invested = results.invested.add(holding);
                     results.total = results.total.add(profit);
+
+                    printLog("Selling:", null, holding);
+                    printLog("@ ", null, signal.getClose());
+
                 }
             } else if (signal.getAction() == Action.STRONGBUY) {
                 results.totalTrades++;
@@ -364,6 +366,8 @@ public class BacktestMainServiceImpl
     }
 
     private void printLog(String title, Date d, Object o) {
-        log.info("Log{ {} {} {}", d, title, o, "}");
+        if(logOn) {
+            log.info("Log{ {} {} {}", d, title, o, "}");
+        }
     }
 }
