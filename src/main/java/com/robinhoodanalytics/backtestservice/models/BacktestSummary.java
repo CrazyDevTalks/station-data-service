@@ -17,6 +17,7 @@ public class BacktestSummary {
     @Indexed
     private String symbol;
 
+    public String algo;
     public int totalTrades = 0;
     public BigDecimal total = BigDecimal.ZERO;
     public BigDecimal invested = BigDecimal.ZERO;

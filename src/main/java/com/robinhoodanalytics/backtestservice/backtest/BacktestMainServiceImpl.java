@@ -59,6 +59,7 @@ public class BacktestMainServiceImpl
             summary.lastPrice = lastSignal.getClose();
             summary.lastVolume = lastSignal.getVolume();
             summary.recommendation = lastSignal.getAction();
+            summary.algo = "BBands";
         }
 
         return summary;
