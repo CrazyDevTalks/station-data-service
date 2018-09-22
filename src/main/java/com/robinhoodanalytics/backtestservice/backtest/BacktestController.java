@@ -54,11 +54,12 @@ public class BacktestController {
             value = "/train",
             method = RequestMethod.GET)
     ResponseEntity<List<Quote>> train(@RequestParam(value = "ticker") String symbol,
-                                         @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
-                                         @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to)
+                                      @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
+                                      @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to,
+                                      @RequestParam boolean save)
     {
         try {
-            return _trainService.train(symbol, from, to);
+            return _trainService.train(symbol, from, to, save);
         } catch (RestClientException e) {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }

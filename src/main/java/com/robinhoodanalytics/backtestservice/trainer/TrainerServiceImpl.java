@@ -3,6 +3,7 @@ package com.robinhoodanalytics.backtestservice.trainer;
 import com.robinhoodanalytics.backtestservice.BacktestServiceApplication;
 import com.robinhoodanalytics.backtestservice.models.AggregatedQuote;
 import com.robinhoodanalytics.backtestservice.models.Quote;
+import com.robinhoodanalytics.backtestservice.quotes.AggregatedQuoteRepository;
 import com.robinhoodanalytics.backtestservice.quotes.QuoteService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,17 +24,18 @@ public class TrainerServiceImpl implements TrainerService {
     @Autowired
     QuoteService _quoteService;
 
+    @Autowired
+    AggregatedQuoteRepository _aggregatedQuoteRepo;
+
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
-    long totalVolume = 0;
-
     @Override
-    public ResponseEntity train(String symbol, Date from, Date to) {
+    public ResponseEntity train(String symbol, Date from, Date to, boolean save) {
         try {
             HttpHeaders responseHeaders = new HttpHeaders();
             responseHeaders.setContentType(MediaType.APPLICATION_JSON);
             List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, from, to);
-            AggregatedQuote[] items = new AggregatedQuote[quotes.size()];
+            AggregatedQuote[] items = new AggregatedQuote[quotes.size() - 1];
 
             if (quotes != null) {
                 Deque<Quote> window = new ArrayDeque<>();
@@ -42,6 +44,7 @@ public class TrainerServiceImpl implements TrainerService {
                 long avgVolume = 0;
                 int ctr = 0;
                 Quote previousQ = null;
+                long volumeSum = 0;
 
                 for (Quote q: quotes) {
                     //log.info("Curr Date: {} ", q.getDate().toString());
@@ -52,11 +55,17 @@ public class TrainerServiceImpl implements TrainerService {
                     } else if (window.size() > 90) {
                         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
                     } else if (window.size() == 90) {
-                        removed = window.removeFirst();
+                        removed = window.removeLast();
                         window.push(q);
                     }
 
-                    avgVolume = getAverageVolume(removed, q, window.size());
+                    if (removed != null) {
+                        volumeSum -= removed.getVolume();
+                    }
+
+                    volumeSum += q.getVolume();
+
+                    avgVolume = getAverageVolume(volumeSum, window.size());
 
                     if (previousQ != null) {
                         double volChange = normalizeVolumeChange(avgVolume, q.getVolume());
@@ -71,13 +80,22 @@ public class TrainerServiceImpl implements TrainerService {
                         int prevCtr = ctr - 1;
                         if (prevCtr >= 0 && items[prevCtr] != null) {
                             items[prevCtr].setOutput(previousOutput);
-                            //log.info("Date: {} Close: {} Tomorrow Close: {}", previousQ.getDate().toString(), previousQ.getClose(), q.getClose());
+                            // log.info("Date: {} Close: {} Tomorrow Close: {}", previousQ.getDate().toString(), previousQ.getClose(), q.getClose());
                         }
+                        // log.info("{} \t{}\t{}\t{}\t{}", window.size(), q.getVolume(), avgVolume, volChange, volumeSum);
 
-                        AggregatedQuote aq = new AggregatedQuote(input, null);
+                        // log.info("window {}", window.stream().map(Object::toString).collect(Collectors.joining(", ")));
+                        // log.info("window {} - {}", window.getFirst(), window.getLast());
+
+                        AggregatedQuote aq = new AggregatedQuote(q.getSymbol(), q.getDate(), input, null);
                         items[ctr++] = aq;
                     }
                     previousQ = q;
+                }
+
+                if (save && items.length > 0) {
+                    List<AggregatedQuote> quoteList = Arrays.asList(items);
+                    _aggregatedQuoteRepo.save(quoteList);
                 }
 
                 return new ResponseEntity<>(items, responseHeaders, HttpStatus.OK);
@@ -91,11 +109,7 @@ public class TrainerServiceImpl implements TrainerService {
         }
     }
 
-    private long getAverageVolume(Quote removed, Quote current, int size) {
-        if (removed != null) {
-            totalVolume -= removed.getVolume();
-        }
-        totalVolume += current.getVolume();
+    private long getAverageVolume(long totalVolume, int size) {
         return totalVolume / size;
     }
 

@@ -35,6 +35,7 @@ import java.util.*;
 @Component("backtestMainService")
 public class BacktestMainServiceImpl
     implements BacktestMainService {
+
     @Autowired
     QuoteService _quoteService;
 
