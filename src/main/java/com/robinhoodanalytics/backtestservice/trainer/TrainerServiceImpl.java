@@ -113,9 +113,12 @@ public class TrainerServiceImpl implements TrainerService {
                 double[] dayOneInputs = examinedQuotes[0].getInput();
                 double d1 = dayOneInputs[0];
 
+                for (AggregatedQuote aq: examinedQuotes) {
+                    log.info("Constants {}", Arrays.toString(aq.getInput()));
+                }
+
                 List<AggregatedQuote> found = _aggregatedQuoteRepo.findByVolumeBetween(d1 - 0.03, d1 + 0.03);
 
-                log.info("found {}", found.size());
                 List<List<AggregatedQuote>> matchingHistorical = new ArrayList<>();
 
                 for (AggregatedQuote aq: found) {
@@ -126,25 +129,31 @@ public class TrainerServiceImpl implements TrainerService {
 
                     if (foundAggregationsLen > examinedQuotesLen) {
                         double numMatches = 0;
-                        double totalSeen = 0;
+                        double attributesTotalSeen = 0;
                         for (int j = 0; j < examinedQuotesLen; j++) {
-                            totalSeen++;
+                            attributesTotalSeen++;
                             AggregatedQuote pastQuote = foundHistoricalAggregatedQuotes.get(j);
                             double[] pastInputs = pastQuote.getInput();
                             AggregatedQuote currentQuote = examinedQuotes[j];
                             double[] currentInputs = currentQuote.getInput();
 
-                            if (pastInputs[0] >= currentInputs[0] - 0.03 && pastInputs[0] <= currentInputs[0] + 0.03) {
+//                            if (pastInputs[0] >= currentInputs[0] - 0.05 && pastInputs[0] <= currentInputs[0] + 0.05) {
+//                                numMatches++;
+//                            }
+                            if (pastInputs[1] == currentInputs[1]) {
                                 numMatches++;
                             }
+//                            if (pastInputs[2] == currentInputs[2]) {
+//                                numMatches++;
+//                            }
                         }
-                        log.info("numMatches {} totalSeen {}", numMatches, totalSeen);
 
-                        if(numMatches / totalSeen > 0.75) {
+                        if(numMatches / attributesTotalSeen >= 1.0) {
                             matchingHistorical.add(foundHistoricalAggregatedQuotes);
                         }
                     }
                 }
+                log.info("Number of matches: {}", matchingHistorical.size());
 
                 return new ResponseEntity<>(matchingHistorical, responseHeaders, HttpStatus.OK);
             } else {
