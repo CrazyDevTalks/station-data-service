@@ -6,6 +6,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Date;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -16,30 +18,24 @@ public class AggregatedQuote {
 
     public String symbol;
 
-    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-    public Date date;
-    public int day;
+    @DateTimeFormat(pattern = "dd/MM/yyyy")
+    public LocalDate date;
     public double[] input;
     public double[] output;
 
-    public AggregatedQuote(String symbol, Date date, double[] input, double[] output) {
+    public AggregatedQuote(String symbol, LocalDate date, double[] input, double[] output) {
         this.symbol = symbol;
         this.date = date;
         this.input = input;
         this.output = output;
-        this.day = DateParser.getDayOfWeek(date);
     }
 
     public void setSymbol(String symbol) {
         this.symbol = symbol;
     }
 
-    public void setDate(Date date) {
+    public void setDate(LocalDate date) {
         this.date = date;
-    }
-
-    public void setDay(int day) {
-        this.day = day;
     }
 
     public void setOutput(double[] output) {
@@ -54,12 +50,8 @@ public class AggregatedQuote {
         return symbol;
     }
 
-    public Date getDate() {
+    public LocalDate getDate() {
         return date;
-    }
-
-    public int getDay() {
-        return day;
     }
 
     public double[] getInput() {
@@ -68,5 +60,15 @@ public class AggregatedQuote {
 
     public double[] getOutput() {
         return output;
+    }
+
+    @Override
+    public String toString() {
+        return "Quote{" +
+                "symbol=" + symbol +
+                ", date='" + date + '\'' +
+                "input=" + Arrays.toString(input) +
+                "output=" + Arrays.toString(output) +
+                "}";
     }
 }

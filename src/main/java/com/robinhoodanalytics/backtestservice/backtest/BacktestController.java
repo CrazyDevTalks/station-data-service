@@ -1,7 +1,6 @@
 package com.robinhoodanalytics.backtestservice.backtest;
 
 import com.robinhoodanalytics.backtestservice.BacktestServiceApplication;
-import com.robinhoodanalytics.backtestservice.models.Signal;
 import com.robinhoodanalytics.backtestservice.trainer.TrainerService;
 import com.robinhoodanalytics.backtestservice.models.Quote;
 import com.robinhoodanalytics.backtestservice.quotes.QuoteService;
@@ -14,6 +13,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestClientException;
 
 import java.math.BigDecimal;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @RestController
@@ -60,6 +64,22 @@ public class BacktestController {
     {
         try {
             return _trainService.train(symbol, from, to, save);
+        } catch (RestClientException e) {
+            return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
+        }
+    }
+
+    @RequestMapping(
+            value = "/train/find",
+            method = RequestMethod.POST)
+    ResponseEntity<List<Quote>> findTrainedData(@RequestBody Map<String, Object> payload)
+    {
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH);
+            LocalDate from = LocalDate.parse((String) payload.get("from"), formatter);
+            LocalDate to = LocalDate.parse((String) payload.get("to"), formatter);
+
+            return _trainService.findTrainingData((String) payload.get("symbol"), from, to, (Boolean) payload.get("save"));
         } catch (RestClientException e) {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }
