@@ -76,85 +76,76 @@ public class TrainerServiceImpl implements TrainerService {
             if (quotes != null) {
                 AggregatedQuote[] items = aggregateQuotes(quotes);
 
-                if (save && items.length > 0) {
-                    List<AggregatedQuote> quoteList = Arrays.asList(items);
-                    _aggregatedQuoteRepo.save(quoteList);
-                }
-
-                int len = items.length;
-                int ctr = 0;
-                int startIdx = -1;
-                int endIdx = -1;
-
-                log.info("from: {} to: {}", items[0].getDate().toString(), items[items.length - 1].getDate().toString());
-
-                while((startIdx == -1 || endIdx == -1) && ctr < len) {
-                    LocalDate currentDate = items[ctr].getDate();
-
-                    if(currentDate.compareTo(from) == 0) {
-                        startIdx = ctr;
-                    } else if(currentDate.compareTo(to) == 0) {
-                        endIdx = ctr;
-                    }
-                    ctr++;
-                }
-                log.info("range: {} {} {}", startIdx, endIdx, items.length);
-
-                if (startIdx < 0 && endIdx > 0) {
-                    startIdx = 0;
-                }
-
-                if (endIdx < 0) {
-                    endIdx = len - 1;
-                }
-
-                AggregatedQuote[] examinedQuotes = Arrays.copyOfRange(items, startIdx, endIdx);
-                int examinedQuotesLen = examinedQuotes.length;
-                double[] dayOneInputs = examinedQuotes[0].getInput();
-                double d1 = dayOneInputs[0];
-
-                for (AggregatedQuote aq: examinedQuotes) {
-                    log.info("Constants {}", Arrays.toString(aq.getInput()));
-                }
-
-                List<AggregatedQuote> found = _aggregatedQuoteRepo.findByVolumeBetween(d1 - 0.03, d1 + 0.03);
-
                 List<List<AggregatedQuote>> matchingHistorical = new ArrayList<>();
+                if (items.length > 0) {
 
-                for (AggregatedQuote aq: found) {
-                    LocalDate endDate = aq.getDate().plusDays(found.size() * 2);
-                    List<AggregatedQuote> foundHistoricalAggregatedQuotes = _aggregatedQuoteRepo.findBySymbolAndDateBetween(aq.getSymbol(), aq.getDate(), endDate);
+                    if (save) {
+                        List<AggregatedQuote> quoteList = Arrays.asList(items);
+                        _aggregatedQuoteRepo.save(quoteList);
+                    }
 
-                    int foundAggregationsLen = foundHistoricalAggregatedQuotes.size();
+                    int len = items.length;
+                    int ctr = 0;
+                    int startIdx = -1;
+                    int endIdx = len;
 
-                    if (foundAggregationsLen > examinedQuotesLen) {
-                        double numMatches = 0;
-                        double attributesTotalSeen = 0;
-                        for (int j = 0; j < examinedQuotesLen; j++) {
-                            attributesTotalSeen++;
-                            AggregatedQuote pastQuote = foundHistoricalAggregatedQuotes.get(j);
-                            double[] pastInputs = pastQuote.getInput();
-                            AggregatedQuote currentQuote = examinedQuotes[j];
-                            double[] currentInputs = currentQuote.getInput();
+                    log.info("from: {} to: {}", items[0].getDate().toString(), items[items.length - 1].getDate().toString());
 
-//                            if (pastInputs[0] >= currentInputs[0] - 0.05 && pastInputs[0] <= currentInputs[0] + 0.05) {
-//                                numMatches++;
-//                            }
-                            if (pastInputs[1] == currentInputs[1]) {
-                                numMatches++;
-                            }
-//                            if (pastInputs[2] == currentInputs[2]) {
-//                                numMatches++;
-//                            }
+                    while (startIdx == -1 && ctr < len) {
+                        LocalDate currentDate = items[ctr].getDate();
+
+                        if (currentDate.compareTo(from) == 0) {
+                            startIdx = ctr;
                         }
+                        ctr++;
+                    }
 
-                        if(numMatches / attributesTotalSeen >= 1.0) {
-                            matchingHistorical.add(foundHistoricalAggregatedQuotes);
+                    if (startIdx < 0) {
+                        startIdx = 0;
+                    }
+
+                    AggregatedQuote[] examinedQuotes = Arrays.copyOfRange(items, startIdx, endIdx);
+                    int examinedQuotesLen = examinedQuotes.length;
+                    double[] dayOneInputs = examinedQuotes[0].getInput();
+                    double d1 = dayOneInputs[0];
+
+                    for (AggregatedQuote o : examinedQuotes) {
+                        log.info("{}", o.toString());
+                    }
+
+                    List<AggregatedQuote> found = _aggregatedQuoteRepo.findByVolumeBetween(d1 - 0.05, d1 + 0.05);
+
+                    matchingHistorical.add(Arrays.asList(examinedQuotes));
+
+                    for (AggregatedQuote aq : found) {
+                        LocalDate endDate = aq.getDate().plusDays(8);
+                        List<AggregatedQuote> foundHistoricalAggregatedQuotes = _aggregatedQuoteRepo.findBySymbolAndDateBetween(aq.getSymbol(), aq.getDate(), endDate);
+
+                        int foundAggregationsLen = foundHistoricalAggregatedQuotes.size();
+
+                        if (foundAggregationsLen > examinedQuotesLen) {
+                            double numMatches = 0;
+                            double attributesTotalSeen = 0;
+                            for (int j = 0; j < examinedQuotesLen; j++) {
+                                attributesTotalSeen++;
+                                AggregatedQuote pastQuote = foundHistoricalAggregatedQuotes.get(j);
+                                double[] pastInputs = pastQuote.getInput();
+                                AggregatedQuote currentQuote = examinedQuotes[j];
+                                double[] currentInputs = currentQuote.getInput();
+
+                                if (pastInputs[0] >= currentInputs[0] - 0.15 && pastInputs[0] <= currentInputs[0] + 0.15) {
+                                    if (pastInputs[1] == currentInputs[1]) {
+                                        numMatches++;
+                                    }
+                                }
+                            }
+                            if (numMatches / attributesTotalSeen >= 1.0) {
+                                matchingHistorical.add(foundHistoricalAggregatedQuotes);
+                            }
                         }
                     }
                 }
                 log.info("Number of matches: {}", matchingHistorical.size());
-
                 return new ResponseEntity<>(matchingHistorical, responseHeaders, HttpStatus.OK);
             } else {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
