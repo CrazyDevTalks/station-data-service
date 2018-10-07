@@ -79,11 +79,6 @@ public class TrainerServiceImpl implements TrainerService {
                 List<List<AggregatedQuote>> matchingHistorical = new ArrayList<>();
                 if (items.length > 0) {
 
-                    if (save) {
-                        List<AggregatedQuote> quoteList = Arrays.asList(items);
-                        _aggregatedQuoteRepo.save(quoteList);
-                    }
-
                     int len = items.length;
                     int ctr = 0;
                     int startIdx = -1;
