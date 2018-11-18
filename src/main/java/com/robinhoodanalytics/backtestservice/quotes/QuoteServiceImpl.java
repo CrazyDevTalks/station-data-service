@@ -2,6 +2,7 @@ package com.robinhoodanalytics.backtestservice.quotes;
 
 
 import com.robinhoodanalytics.backtestservice.BacktestServiceApplication;
+import com.robinhoodanalytics.backtestservice.models.IntradayQuote;
 import com.robinhoodanalytics.backtestservice.models.Quote;
 import com.robinhoodanalytics.backtestservice.utils.DateParser;
 import org.slf4j.Logger;
@@ -23,7 +24,35 @@ public class QuoteServiceImpl
     @Autowired
     private QuoteRepository quoteRepo;
 
+    @Autowired
+    private IntradayQuoteRepository intradayQuoteRepository;
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
+
+    @Override
+    public ResponseEntity addIntradayQuotes(List<IntradayQuote> payload){
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.setContentType(MediaType.TEXT_PLAIN);
+
+        int len = payload.size();
+        if (len > 99) {
+            IntradayQuote first = payload.get(0);
+            String symbol = first.symbol;
+            IntradayQuote last = payload.get(len - 1);
+            List<IntradayQuote> quotes = intradayQuoteRepository.findBySymbolAndDateBetween(symbol, first.date, last.date);
+
+            if (quotes.size() >= len) {
+                return new ResponseEntity<>("Quotes already exist.", responseHeaders, HttpStatus.CONFLICT);
+            } else {
+                if (quotes.size() > 0) {
+                    intradayQuoteRepository.delete(quotes);
+                }
+
+                intradayQuoteRepository.save(payload);
+                return new ResponseEntity<>("Quotes added.", responseHeaders, HttpStatus.OK);
+            }
+        }
+        return new ResponseEntity<>("Not enough quotes to add.", responseHeaders, HttpStatus.BAD_REQUEST);
+    }
 
     @Override
     public List<Quote> getHistoricalQuotes(String symbol, Date from, Date to)
@@ -96,6 +125,7 @@ public class QuoteServiceImpl
         List<Quote> quotes = Arrays.asList(response);
 
         quoteRepo.save(quotes);
+
         log.info("Saved {} results", quotes.size());
         return quotes;
     }
