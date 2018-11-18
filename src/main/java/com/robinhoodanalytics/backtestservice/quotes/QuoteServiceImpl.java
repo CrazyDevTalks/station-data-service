@@ -41,17 +41,17 @@ public class QuoteServiceImpl
             List<IntradayQuote> quotes = intradayQuoteRepository.findBySymbolAndDateBetween(symbol, first.date, last.date);
 
             if (quotes.size() >= len) {
-                return new ResponseEntity<>("Quotes already exist.", responseHeaders, HttpStatus.CONFLICT);
+                return new ResponseEntity<>("\"Quotes already exist\"", responseHeaders, HttpStatus.CONFLICT);
             } else {
                 if (quotes.size() > 0) {
                     intradayQuoteRepository.delete(quotes);
                 }
 
                 intradayQuoteRepository.save(payload);
-                return new ResponseEntity<>("Quotes added.", responseHeaders, HttpStatus.OK);
+                return new ResponseEntity<>("\"Quotes added\"", responseHeaders, HttpStatus.OK);
             }
         }
-        return new ResponseEntity<>("Not enough quotes to add.", responseHeaders, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>("\"Not enough quotes to add\"", responseHeaders, HttpStatus.BAD_REQUEST);
     }
 
     @Override
