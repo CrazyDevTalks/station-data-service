@@ -14,6 +14,8 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -52,6 +54,16 @@ public class QuoteServiceImpl
             }
         }
         return new ResponseEntity<>("\"Not enough quotes to add\"", responseHeaders, HttpStatus.BAD_REQUEST);
+    }
+
+    @Override
+    public ResponseEntity findIntradayQuotes(String symbol, LocalDateTime from, LocalDateTime to) {
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.setContentType(MediaType.APPLICATION_JSON);
+        symbol = symbol.toUpperCase();
+        List<IntradayQuote> quotes = intradayQuoteRepository.findBySymbolAndDateBetween(symbol, from, to);
+        log.info("Found: {}", quotes.size());
+        return new ResponseEntity<>(quotes, responseHeaders, HttpStatus.OK);
     }
 
     @Override

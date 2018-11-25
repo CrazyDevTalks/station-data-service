@@ -1,10 +1,12 @@
 package com.robinhoodanalytics.backtestservice.quotes;
 
 import com.robinhoodanalytics.backtestservice.models.IntradayQuote;
+import com.robinhoodanalytics.backtestservice.models.Quote;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 
 public interface IntradayQuoteRepository extends MongoRepository<IntradayQuote, String> {

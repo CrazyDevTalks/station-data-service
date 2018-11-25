@@ -17,6 +17,7 @@ import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -60,6 +61,21 @@ public class BacktestController {
     {
         try {
             return _quoteService.addIntradayQuotes(payload);
+        } catch (RestClientException e) {
+            return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
+        }
+    }
+
+    @RequestMapping(value = "/find/intraday", method = RequestMethod.GET)
+    ResponseEntity findIntradayData(@RequestParam(value = "symbol") String symbol,
+                                    @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
+                                    @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to)
+    {
+        try {
+            log.info("looking for: {} {} {}", symbol, from, to);
+            LocalDateTime startDate = from.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+            LocalDateTime endDate = to.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+            return _quoteService.findIntradayQuotes(symbol, startDate, endDate);
         } catch (RestClientException e) {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }
