@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+@org.springframework.context.annotation.Configuration
+@org.springframework.boot.autoconfigure.EnableAutoConfiguration
 @SpringBootApplication
 public class BacktestServiceApplication {
 

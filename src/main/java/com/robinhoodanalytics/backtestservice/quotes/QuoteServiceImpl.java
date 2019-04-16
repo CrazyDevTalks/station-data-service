@@ -46,10 +46,10 @@ public class QuoteServiceImpl
                 return new ResponseEntity<>("\"Quotes already exist\"", responseHeaders, HttpStatus.CONFLICT);
             } else {
                 if (quotes.size() > 0) {
-                    intradayQuoteRepository.delete(quotes);
+                    intradayQuoteRepository.deleteAll(quotes);
                 }
 
-                intradayQuoteRepository.save(payload);
+                intradayQuoteRepository.saveAll(payload);
                 return new ResponseEntity<>("\"Quotes added\"", responseHeaders, HttpStatus.OK);
             }
         }
@@ -100,7 +100,7 @@ public class QuoteServiceImpl
             return quotes;
         }
         else {
-            quoteRepo.delete(quotes);
+            quoteRepo.deleteAll(quotes);
             return addQuotes(symbol, diff);
         }
     }
@@ -136,7 +136,7 @@ public class QuoteServiceImpl
 
         List<Quote> quotes = Arrays.asList(response);
 
-        quoteRepo.save(quotes);
+        quoteRepo.saveAll(quotes);
 
         log.info("Saved {} results", quotes.size());
         return quotes;
@@ -172,7 +172,7 @@ public class QuoteServiceImpl
                 filteredQuotes.add(q);
             }
         }
-        quoteRepo.save(filteredQuotes);
+        quoteRepo.saveAll(filteredQuotes);
         return quotes;
     }
 }

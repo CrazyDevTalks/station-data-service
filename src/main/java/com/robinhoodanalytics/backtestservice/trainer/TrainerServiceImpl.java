@@ -50,7 +50,7 @@ public class TrainerServiceImpl implements TrainerService {
                 if (save && items.length > 0) {
                     List<AggregatedQuote> quoteList = Arrays.asList(items);
 
-                    _aggregatedQuoteRepo.save(quoteList);
+                    _aggregatedQuoteRepo.saveAll(quoteList);
                 }
 
                 return new ResponseEntity<>(items, responseHeaders, HttpStatus.OK);
