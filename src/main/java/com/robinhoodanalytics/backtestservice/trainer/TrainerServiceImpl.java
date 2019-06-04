@@ -185,7 +185,7 @@ public class TrainerServiceImpl implements TrainerService {
                 double lowBinary = normalizePriceToBinary(previousQ.getLow(), q.getLow());
 
                 double[] input = {volChange, closeBinary, openBinary, highBinary, lowBinary};
-                double[] previousOutput = {closeBinary};
+                double[] previousOutput = {openBinary};
 
                 int prevCtr = ctr - 1;
                 if (prevCtr >= 0 && items[prevCtr] != null) {
