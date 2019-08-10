@@ -141,7 +141,6 @@ public class BacktestController {
                                                                         @RequestParam("s") int shortTerm,
                                                                         @RequestParam("l") int longTerm,
                                                                         @RequestParam("p") int bbandPeriod
-
     ) {
 
         try {
@@ -170,5 +169,18 @@ public class BacktestController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e);
         }
+    }
+
+    @RequestMapping(
+            value = "/strategy/rnn",
+            method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity meanReversionTrainer(@RequestParam("symbol") String symbol,
+                                               @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
+                                               @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to
+    ) {
+
+        _trainService.train(symbol, from, to, false);
+        return ResponseEntity.ok();
     }
 }

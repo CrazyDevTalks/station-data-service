@@ -213,19 +213,19 @@ public class BacktestMainServiceImpl
             }
         }
 
-        if (lowVolumeDays > highVolumeDays && lowVolumeDays > 2) {
+        if (lowVolumeDays > highVolumeDays && lowVolumeDays > 5) {
 
             if (downward > upward) {
                 recommendation = Action.SELL;
-            } else if (downward < upward) {
+            } else if (upward > downward) {
                 recommendation = Action.BUY;
             }
-        } else if (lowVolumeDays < highVolumeDays && highVolumeDays > 2) {
+        } else if (highVolumeDays > lowVolumeDays && highVolumeDays > 5) {
 
             if (downward > upward) {
-                recommendation = Action.SELL;
-            } else if (downward < upward) {
                 recommendation = Action.BUY;
+            } else if (upward > downward) {
+                recommendation = Action.SELL;
             }
         }
 
