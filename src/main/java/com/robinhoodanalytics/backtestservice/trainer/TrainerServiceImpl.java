@@ -31,7 +31,7 @@ public class TrainerServiceImpl implements TrainerService {
 
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
-    public AggregatedQuote[] aggregateQuotes(String symbol, Date from, Date to) {
+    public AggregatedQuote[] convertTrainingData(String symbol, Date from, Date to) {
         List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, from, to)
                 .stream().map(e  -> {
                     Date newDate = DateParser.standardizeDate(e.getDate());
@@ -41,12 +41,6 @@ public class TrainerServiceImpl implements TrainerService {
 
         if (quotes != null) {
             AggregatedQuote[] items = aggregateQuotes(quotes);
-
-            if (save && items.length > 0) {
-                List<AggregatedQuote> quoteList = Arrays.asList(items);
-
-                _aggregatedQuoteRepo.saveAll(quoteList);
-            }
 
             return items;
         }
@@ -59,17 +53,10 @@ public class TrainerServiceImpl implements TrainerService {
             HttpHeaders responseHeaders = new HttpHeaders();
             responseHeaders.setContentType(MediaType.APPLICATION_JSON);
 
-            List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, from, to)
-                                                .stream().map(e  -> {
-                                                    Date newDate = DateParser.standardizeDate(e.getDate());
-                                                    e.setDate(newDate);
-                                                    return e;
-                                                }).collect(Collectors.toList());
+            AggregatedQuote[] items = this.convertTrainingData(symbol, from, to);
 
-            if (quotes != null) {
-                AggregatedQuote[] items = aggregateQuotes(quotes);
-
-                if (save && items.length > 0) {
+            if (items != null) {
+                if (save) {
                     List<AggregatedQuote> quoteList = Arrays.asList(items);
 
                     _aggregatedQuoteRepo.saveAll(quoteList);

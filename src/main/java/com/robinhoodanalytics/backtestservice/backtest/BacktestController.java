@@ -179,8 +179,10 @@ public class BacktestController {
                                                @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
                                                @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to
     ) {
-
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.setContentType(MediaType.APPLICATION_JSON);
+        
         _trainService.train(symbol, from, to, false);
-        return ResponseEntity.ok();
+        return new ResponseEntity<>(null, responseHeaders, HttpStatus.OK);
     }
 }
