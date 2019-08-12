@@ -31,13 +31,19 @@ public class TrainerServiceImpl implements TrainerService {
 
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
-    public AggregatedQuote[] convertTrainingData(String symbol, Date from, Date to) {
-        List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, from, to)
+    @Override
+    public List<Quote> sanitizeQuotes(String symbol, Date from, Date to) {
+        return _quoteService.getHistoricalQuotes(symbol, from, to)
                 .stream().map(e  -> {
                     Date newDate = DateParser.standardizeDate(e.getDate());
                     e.setDate(newDate);
                     return e;
                 }).collect(Collectors.toList());
+    }
+
+    @Override
+    public AggregatedQuote[] convertTrainingData(String symbol, Date from, Date to) {
+        List<Quote> quotes = this.sanitizeQuotes(symbol, from, to);
 
         if (quotes != null) {
             AggregatedQuote[] items = aggregateQuotes(quotes);

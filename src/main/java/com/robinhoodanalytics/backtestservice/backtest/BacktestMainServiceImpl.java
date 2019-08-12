@@ -4,6 +4,7 @@ import com.robinhoodanalytics.backtestservice.BacktestServiceApplication;
 import com.robinhoodanalytics.backtestservice.models.*;
 import com.robinhoodanalytics.backtestservice.quotes.QuoteService;
 import com.robinhoodanalytics.backtestservice.strategy.BuyAndHold;
+import com.robinhoodanalytics.backtestservice.trainer.TrainerService;
 import com.robinhoodanalytics.backtestservice.utils.DateParser;
 import com.robinhoodanalytics.backtestservice.utils.RollingAverage;
 import com.robinhoodanalytics.backtestservice.utils.Statistics;
@@ -39,9 +40,21 @@ public class BacktestMainServiceImpl
     @Autowired
     QuoteService _quoteService;
 
+    @Autowired
+    TrainerService _trainerService;
+
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
     private static boolean logOn = false;
+
+    @Override
+    public String backtestRnn(String symbol, Date from, Date to) {
+        AggregatedQuote[] baseline = _trainerService.convertTrainingData(symbol, from, to);
+        List<Quote> uproQuotes = _trainerService.sanitizeQuotes(symbol, from, to);
+        List<Quote> spxuQuotes = _trainerService.sanitizeQuotes(symbol, from, to);
+
+        return "done";
+    }
 
     @Override
     public List<Signal> getMeanReversionTimeline(String symbol, Date from, Date to, int shortTerm, int longTerm, int bbandPeriod)

@@ -181,7 +181,7 @@ public class BacktestController {
     ) {
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(MediaType.APPLICATION_JSON);
-        
+
         _trainService.train(symbol, from, to, false);
         return new ResponseEntity<>(null, responseHeaders, HttpStatus.OK);
     }
