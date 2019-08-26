@@ -1,7 +1,9 @@
 package com.robinhoodanalytics.backtestservice.backtest;
 
 import com.robinhoodanalytics.backtestservice.BacktestServiceApplication;
+import com.robinhoodanalytics.backtestservice.backtest.models.PrecogBacktestResults;
 import com.robinhoodanalytics.backtestservice.models.*;
+import com.robinhoodanalytics.backtestservice.precog.PrecogService;
 import com.robinhoodanalytics.backtestservice.quotes.QuoteService;
 import com.robinhoodanalytics.backtestservice.strategy.BuyAndHold;
 import com.robinhoodanalytics.backtestservice.trainer.TrainerService;
@@ -43,17 +45,27 @@ public class BacktestMainServiceImpl
     @Autowired
     TrainerService _trainerService;
 
+    @Autowired
+    PrecogService _precogService;
+
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
     private static boolean logOn = false;
 
     @Override
-    public String backtestRnn(String symbol, Date from, Date to) {
+    public PrecogBacktestResults[] backtestRnn(String symbol, Date from, Date to) {
         AggregatedQuote[] baseline = _trainerService.convertTrainingData(symbol, from, to);
-        List<Quote> uproQuotes = _trainerService.sanitizeQuotes(symbol, from, to);
-        List<Quote> spxuQuotes = _trainerService.sanitizeQuotes(symbol, from, to);
+//        List<Quote> uproQuotes = _trainerService.sanitizeQuotes(symbol, from, to);
+//        List<Quote> spxuQuotes = _trainerService.sanitizeQuotes(symbol, from, to);
 
-        return "done";
+        ResponseEntity<int[]> test = _precogService.retrievePrediction(baseline[0].input);
+//        for (int i = 0; i < baseline.length; i++) {
+//            baseline[i].input
+//        }
+
+        PrecogBacktestResults[] results = new PrecogBacktestResults[1];
+        results[0] = new PrecogBacktestResults(symbol, baseline[0].input, test.getBody()[0], 0, null);
+        return results;
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.robinhoodanalytics.backtestservice.backtest;
 
 import com.robinhoodanalytics.backtestservice.BacktestServiceApplication;
+import com.robinhoodanalytics.backtestservice.backtest.models.PrecogBacktestResults;
 import com.robinhoodanalytics.backtestservice.models.IntradayQuote;
 import com.robinhoodanalytics.backtestservice.trainer.TrainerService;
 import com.robinhoodanalytics.backtestservice.models.Quote;
@@ -175,14 +176,15 @@ public class BacktestController {
             value = "/strategy/rnn",
             method = RequestMethod.GET)
     @ResponseBody
-    public ResponseEntity meanReversionTrainer(@RequestParam("symbol") String symbol,
+    public ResponseEntity rnnBacktest(@RequestParam("symbol") String symbol,
                                                @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
                                                @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to
     ) {
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(MediaType.APPLICATION_JSON);
 
-        _trainService.train(symbol, from, to, false);
-        return new ResponseEntity<>(null, responseHeaders, HttpStatus.OK);
+        PrecogBacktestResults[] results = _backtestMainService.backtestRnn(symbol, from, to);
+
+        return new ResponseEntity<>(results, responseHeaders, HttpStatus.OK);
     }
 }
