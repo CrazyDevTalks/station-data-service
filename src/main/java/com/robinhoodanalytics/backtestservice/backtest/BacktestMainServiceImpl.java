@@ -31,7 +31,6 @@ import org.ta4j.core.indicators.statistics.StandardDeviationIndicator;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.*;
 
@@ -190,7 +189,6 @@ public class BacktestMainServiceImpl
         BigDecimal lower = bband.lower;
         BigDecimal mid = bband.mid;
         BigDecimal upper = bband.upper;
-
         printLog("bband: ", quote.getDate(), bband.toString());
 
         Boolean shortTarget = (lastPrice.compareTo(upper) <= 0) && (lastPrice.compareTo(mid) >= 0);
