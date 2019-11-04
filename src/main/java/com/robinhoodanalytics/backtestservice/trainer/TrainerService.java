@@ -13,4 +13,5 @@ public interface TrainerService {
     AggregatedQuote[] convertTrainingData(String symbol, Date from, Date to);
     ResponseEntity train(String symbol, Date from, Date to, boolean save);
     ResponseEntity findTrainingData(String symbol, LocalDate from, LocalDate to, boolean save);
+    void trainHmmModel();
 }

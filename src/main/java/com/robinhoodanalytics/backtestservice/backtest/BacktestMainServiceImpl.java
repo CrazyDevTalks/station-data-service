@@ -6,6 +6,8 @@ import com.robinhoodanalytics.backtestservice.models.*;
 import com.robinhoodanalytics.backtestservice.precog.PrecogService;
 import com.robinhoodanalytics.backtestservice.quotes.QuoteService;
 import com.robinhoodanalytics.backtestservice.strategy.BuyAndHold;
+import com.robinhoodanalytics.backtestservice.strategy.MfiPayload;
+import com.robinhoodanalytics.backtestservice.strategy.MoneyFlowIndex;
 import com.robinhoodanalytics.backtestservice.trainer.TrainerService;
 import com.robinhoodanalytics.backtestservice.utils.DateParser;
 import com.robinhoodanalytics.backtestservice.utils.RollingAverage;
@@ -29,6 +31,7 @@ import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.statistics.StandardDeviationIndicator;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -77,7 +80,7 @@ public class BacktestMainServiceImpl
     public BacktestSummary getMeanReversionResults(String symbol, Date from, Date to, BigDecimal deviation, int shortTerm, int longTerm, int bbandPeriod)
             throws Exception {
         List<Signal> signals = trainMeanReversion(symbol, from, to, shortTerm, longTerm, bbandPeriod);
-        BacktestSummary summary = calculateReturns(signals, deviation);
+        BacktestSummary summary = calculateReturns(signals);
 
         if (signals.size() > 0) {
             Signal lastSignal = signals.get(signals.size() - 1);
@@ -218,13 +221,11 @@ public class BacktestMainServiceImpl
 
                 if (!bbBroken) {
                     if (shortTarget) {
-
                         if (price.compareTo(upper) > 0) {
                             bbShort = true;
                             bbBroken = true;
                         }
                     } else if (longTarget) {
-
                         if (price.compareTo(lower) < 0) {
                             bbLong = true;
                             bbBroken = true;
@@ -271,10 +272,14 @@ public class BacktestMainServiceImpl
                 recommendation = Action.INDETERMINANT;
             }
         } else {
-            recommendation = Action.INDETERMINANT;
+            if (shortTarget) {
+                recommendation = Action.SELL;
+            } else if (longTarget) {
+                recommendation = Action.BUY;
+            } else  {
+                recommendation = Action.INDETERMINANT;
+            }
         }
-        printLog("short: ", null, bbShort);
-        printLog("Long: ", null, bbLong);
 
         return recommendation;
     }
@@ -307,7 +312,8 @@ public class BacktestMainServiceImpl
         return queue;
     }
 
-    private BacktestSummary calculateReturns(List<Signal> signals, BigDecimal deviation) {
+    private BacktestSummary calculateReturns(List<Signal> signals) {
+        Stock s = new Stock("");
         BacktestSummary results = new BacktestSummary();
         log.info("signals: {}", signals.size());
 
@@ -324,11 +330,14 @@ public class BacktestMainServiceImpl
 
                     printLog("Selling:", null, holding);
                     printLog("@ ", null, signal.getClose());
-
+                    Order o = new Order(s, 1, signal.getClose(), Order.Side.sell, signal.getDate());
+                    results.orderHistory.add(o);
                 }
             } else if (signal.getAction() == Action.STRONGBUY) {
                 results.totalTrades++;
                 results.buys.add(signal.getClose());
+                Order o = new Order(s, 1, signal.getClose(), Order.Side.buy, signal.getDate());
+                results.orderHistory.add(o);
             }
         }
 
@@ -388,6 +397,71 @@ public class BacktestMainServiceImpl
         BigDecimal upper = mid.add(sd80.getValue(endIndx).getDelegate().multiply(k));
 
         return new BollingerBand(lower, mid, upper);
+    }
+
+    @Override
+    public BacktestSummary backtestStrategy(String symbol, String strategy, Date from, Date to, double[] settings)
+        throws Exception {
+        if (strategy == "BollingerBand") {
+            return this.getMeanReversionResults(symbol, from, to, new BigDecimal(settings[0], MathContext.DECIMAL64), (int) settings[1], (int) settings[2], (int) settings[3]);
+        }
+
+        List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, from, to);
+
+        switch(strategy) {
+            case "MoneyFlowIndex":
+                return this.runMoneyFlowIndexBacktest(quotes);
+        }
+
+        return null;
+    }
+
+    private BacktestSummary runMoneyFlowIndexBacktest(List<Quote> quotes) {
+        List<Signal> signals = this.getMfiSignals(quotes);
+        BacktestSummary summary = calculateReturns(signals);
+
+        if (signals.size() > 0) {
+            Signal lastSignal = signals.get(signals.size() - 1);
+            summary.lastPrice = lastSignal.getClose();
+            summary.lastVolume = lastSignal.getVolume();
+            summary.recommendation = lastSignal.getAction();
+            summary.algo = "MoneyFlowIndex";
+        }
+
+        return summary;
+    }
+
+    private List<Signal> getMfiSignals(List<Quote> quotes) {
+        MoneyFlowIndex mfi = new MoneyFlowIndex();
+        int period = 14;
+        List<Signal> signals = new ArrayList<>();
+
+        for (int i = 0; i< quotes.size(); i++) {
+            if (i > 14) {
+                List<Quote> sublist = quotes.subList(i - 14, i + 1);
+                MfiPayload payload = this.createList(sublist, period);
+                Signal technicalSignal = mfi.onTick(sublist.get(sublist.size() - 1).getDate(), payload.high, payload.low, payload.close, payload.volume, payload.period);
+                signals.add(technicalSignal);
+            }
+        }
+
+        return signals;
+    }
+
+    private MfiPayload createList(List<Quote> quotes, int period) {
+        double[] high = new double[period + 1];
+        double[] low = new double[period + 1];
+        double[] close = new double[period + 1];
+        long[] volume = new long[period + 1];
+
+        for (int i = 0; i< quotes.size(); i++) {
+            high[i] = quotes.get(i).getHigh().doubleValue();
+            low[i] = quotes.get(i).getLow().doubleValue();
+            close[i] = quotes.get(i).getClose().doubleValue();
+            volume[i] = quotes.get(i).getVolume();
+        }
+
+        return new MfiPayload(high, low, close, volume, period);
     }
 
     private void printLog(String title, Date d, Object o) {

@@ -3,7 +3,7 @@ package com.robinhoodanalytics.backtestservice.models;
 public class Stock {
     private String _symbol;
 
-    protected Stock(String symbol) {
+    public Stock(String symbol) {
         _symbol = symbol;
     }
 

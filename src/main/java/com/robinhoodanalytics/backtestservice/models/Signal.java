@@ -37,6 +37,16 @@ public class Signal {
         this.volume = volume;
     }
 
+    public Signal(Date date, Action action, BigDecimal close, long volume) {
+        this.date = date;
+        this.action = action;
+        this.close = close;
+        this.volume = volume;
+    }
+
+    public Signal() {
+    }
+
     public Date getDate() {
         return date;
     }

@@ -5,9 +5,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
-import java.util.ArrayDeque;
-import java.util.Date;
-import java.util.Deque;
+import java.util.*;
 
 @Document(collection = "backtest_summary")
 public class BacktestSummary {
@@ -26,7 +24,9 @@ public class BacktestSummary {
     public BigDecimal lastPrice;
     public Action recommendation;
     public Deque<BigDecimal> buys = new ArrayDeque<>();
+    public ArrayList<Order> orderHistory = new ArrayList<>();
     public Date startDate;
     public Date endDate;
+    public List<Signal> signals;
 }
 
