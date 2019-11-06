@@ -272,9 +272,9 @@ public class BacktestMainServiceImpl
                 recommendation = Action.INDETERMINANT;
             }
         } else {
-            if (shortTarget) {
+            if ((lastPrice.compareTo(upper) > 0)) {
                 recommendation = Action.SELL;
-            } else if (longTarget) {
+            } else if (lastPrice.compareTo(lower) < 0) {
                 recommendation = Action.BUY;
             } else  {
                 recommendation = Action.INDETERMINANT;
