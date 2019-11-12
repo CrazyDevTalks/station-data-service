@@ -28,11 +28,9 @@ public class MoneyFlowIndex {
                 HttpMethod.POST, entity, new ParameterizedTypeReference<List<List<BigDecimal>>>() {
                 });
 
-        log.info("mfi: {} {}", mfiResponse.getBody(), mfiResponse.getBody().get(0).get(0).doubleValue() < 20);
-
-        if (mfiResponse.getBody().get(0).get(0).doubleValue() < 20) {
+        if (mfiResponse.getBody().get(0).get(0).doubleValue() < 15) {
             return new Signal(date, Action.STRONGBUY, new BigDecimal(close[close.length - 1]), volume[volume.length - 1]);
-        } else if (mfiResponse.getBody().get(0).get(0).doubleValue() > 75) {
+        } else if (mfiResponse.getBody().get(0).get(0).doubleValue() > 30) {
             return new Signal(date, Action.STRONGSELL, new BigDecimal(close[close.length - 1]), volume[volume.length - 1]);
         }
 
