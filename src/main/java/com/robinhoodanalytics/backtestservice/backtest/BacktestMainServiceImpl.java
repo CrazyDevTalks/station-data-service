@@ -426,6 +426,7 @@ public class BacktestMainServiceImpl
             summary.lastVolume = lastSignal.getVolume();
             summary.recommendation = lastSignal.getAction();
             summary.algo = "MoneyFlowIndex";
+            summary.signals = signals;
         }
 
         return summary;
@@ -441,7 +442,25 @@ public class BacktestMainServiceImpl
                 List<Quote> sublist = quotes.subList(i - 14, i + 1);
                 MfiPayload payload = this.createList(sublist, period);
                 Signal technicalSignal = mfi.onTick(sublist.get(sublist.size() - 1).getDate(), payload.high, payload.low, payload.close, payload.volume, payload.period);
-                signals.add(technicalSignal);
+                if (technicalSignal != null) {
+                    signals.add(technicalSignal);
+                    int oneMonthIdx = i + 20;
+                    if (oneMonthIdx < quotes.size()) {
+                        BigDecimal latterClose = new BigDecimal(String.valueOf(quotes.get(oneMonthIdx).getClose()));
+                        BigDecimal diff = latterClose.subtract(technicalSignal.getClose());
+                        diff = diff.divide(technicalSignal.getClose(), RoundingMode.HALF_UP);
+
+                        if (technicalSignal.getAction() == Action.SELL || technicalSignal.getAction() == Action.STRONGSELL) {
+                            diff = diff.multiply(new BigDecimal(-1));
+                        }
+
+                        if (technicalSignal.oneMonthGain != null) {
+                            technicalSignal.oneMonthGain.add(diff);
+                        } else {
+                            technicalSignal.oneMonthGain = diff;
+                        }
+                    }
+                }
             }
         }
 

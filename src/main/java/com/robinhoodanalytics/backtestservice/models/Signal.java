@@ -24,6 +24,8 @@ public class Signal {
 
     private long volume;
 
+    public BigDecimal oneMonthGain;
+
     public Signal(Date date, Action action, BigDecimal deviation,
                   BigDecimal shortTermAverage, BigDecimal longTermAverage,
                   BigDecimal volumeChange, BigDecimal close, long volume) {

@@ -34,6 +34,6 @@ public class MoneyFlowIndex {
             return new Signal(date, Action.STRONGSELL, new BigDecimal(close[close.length - 1]), volume[volume.length - 1]);
         }
 
-        return new Signal();
+        return null;
     }
 }
