@@ -7,20 +7,20 @@ import java.math.BigDecimal;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BBandOptions {
 
-    private BigDecimal[] real;
+    private double[] real;
     private int period;
     private double stddev;
 
     public BBandOptions() {
     }
 
-    public BBandOptions(BigDecimal[] real, int period, double stddev) {
+    public BBandOptions(double[] real, int period, double stddev) {
         this.real = real;
         this.period = period;
         this.stddev = stddev;
     }
 
-    public BigDecimal[] getReal() {
+    public double[] getReal() {
         return this.real;
     }
 
@@ -36,7 +36,7 @@ public class BBandOptions {
         this.period = period;
     }
 
-    public void setReals(BigDecimal[] real) {
+    public void setReals(double[] real) {
         this.real = real;
     }
 

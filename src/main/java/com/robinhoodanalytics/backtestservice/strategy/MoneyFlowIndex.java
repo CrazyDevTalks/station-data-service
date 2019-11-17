@@ -13,13 +13,19 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
-public class MoneyFlowIndex {
+public class MoneyFlowIndex implements Strategy{
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
+    public double[] high;
+    public double[] low;
+    public double[] close;
+    public long[] volume;
+    public int period;
 
-    public Signal onTick(Date date, double[] high, double[] low, double[] close, long[] volume, int period) {
+    @Override
+    public Signal onTick(Date date) {
         String apiUrl = "http://localhost:9000/api/backtest/mfi";
 
-        MfiPayload body = new MfiPayload(high, low, close, volume, period);
+        MfiPayload body = new MfiPayload(this.high, this.low, this.close, this.volume, this.period);
 
         RestTemplate restTemplate = new RestTemplate();
         HttpEntity<MfiPayload> entity = new HttpEntity<>(body);

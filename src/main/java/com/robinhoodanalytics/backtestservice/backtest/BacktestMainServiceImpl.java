@@ -5,6 +5,7 @@ import com.robinhoodanalytics.backtestservice.backtest.models.PrecogBacktestResu
 import com.robinhoodanalytics.backtestservice.models.*;
 import com.robinhoodanalytics.backtestservice.precog.PrecogService;
 import com.robinhoodanalytics.backtestservice.quotes.QuoteService;
+import com.robinhoodanalytics.backtestservice.strategy.BbandMfi;
 import com.robinhoodanalytics.backtestservice.strategy.BuyAndHold;
 import com.robinhoodanalytics.backtestservice.strategy.MfiPayload;
 import com.robinhoodanalytics.backtestservice.strategy.MoneyFlowIndex;
@@ -348,21 +349,6 @@ public class BacktestMainServiceImpl
         return results;
     }
 
-    private List<List<BigDecimal>> getBollingerBand(BigDecimal[] real, int period) {
-        BBandOptions body = new BBandOptions(real, period, 2);
-        RestTemplate restTemplate = new RestTemplate();
-        HttpEntity<BBandOptions> entity = new HttpEntity<>(body);
-
-        ResponseEntity<List<List<BigDecimal>>> rateResponse =
-                restTemplate.exchange("http://localhost:9000/api/backtest/bbands",
-                        HttpMethod.POST, entity, new ParameterizedTypeReference<List<List<BigDecimal>>>() {
-                        });
-
-        List<List<BigDecimal>> bbands = rateResponse.getBody();
-
-        return bbands;
-    }
-
     private TimeSeries convertToTimeSeries(String symbol, List<Bar> bars) {
         return new BaseTimeSeries(symbol + "bars", bars);
     }
@@ -371,15 +357,6 @@ public class BacktestMainServiceImpl
                               double low, double close, double volume) {
 
         return new BaseBar(date, open, high, low, close, volume);
-    }
-
-    private BollingerBand getBollingerBandV1(BigDecimal[] bband) {
-        List<List<BigDecimal>> band = getBollingerBand(bband, bband.length);
-
-        BigDecimal lower = band.get(0).get(0);
-        BigDecimal mid = band.get(1).get(0);
-        BigDecimal upper = band.get(2).get(0);
-        return new BollingerBand(lower, mid, upper);
     }
 
     private BollingerBand getBollingerBandV2(TimeSeries series) {
@@ -408,12 +385,76 @@ public class BacktestMainServiceImpl
 
         List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, from, to);
 
-        switch(strategy) {
-            case "MoneyFlowIndex":
+        switch(strategy.toUpperCase()) {
+            case "MONEYFLOWINDEX":
                 return this.runMoneyFlowIndexBacktest(quotes);
+            case "BBMFI":
+                return this.runBbandMoneyFlowIndexBacktest(quotes);
         }
 
         return null;
+    }
+
+    private BacktestSummary runBbandMoneyFlowIndexBacktest(List<Quote> quotes) {
+        List<Signal> signals = this.getBbandMfiSignals(quotes);
+        BacktestSummary summary = calculateReturns(signals);
+
+        if (signals.size() > 0) {
+            Signal lastSignal = signals.get(signals.size() - 1);
+            summary.lastPrice = lastSignal.getClose();
+            summary.lastVolume = lastSignal.getVolume();
+            summary.recommendation = lastSignal.getAction();
+            summary.algo = "MoneyFlowIndex";
+            summary.signals = signals;
+        }
+
+        return summary;
+    }
+
+    private List<Signal> getBbandMfiSignals(List<Quote> quotes) {
+        BbandMfi bb = new BbandMfi();
+        int period = 14;
+        int bbandPeriod = 80;
+        List<Signal> signals = new ArrayList<>();
+
+        for (int i = 0; i< quotes.size(); i++) {
+            if (i > 80) {
+                List<Quote> sublist = quotes.subList(i - 14, i + 1);
+                MfiPayload payload = this.createList(sublist, period);
+                MfiPayload bbList = this.createList(quotes.subList(i - bbandPeriod, i + 1), bbandPeriod);
+
+                bb.high = payload.high;
+                bb.low = payload.low;
+                bb.close = payload.close;
+                bb.volume = payload.volume;
+                bb.mfiPeriod = payload.period;
+                bb.bbandPeriod = bbandPeriod;
+                bb.bbandClose = bbList.close;
+                Signal technicalSignal = bb.onTick(sublist.get(sublist.size() - 1).getDate());
+
+                if (technicalSignal != null) {
+                    signals.add(technicalSignal);
+                    int oneMonthIdx = i + 20;
+                    if (oneMonthIdx < quotes.size()) {
+                        BigDecimal latterClose = new BigDecimal(String.valueOf(quotes.get(oneMonthIdx).getClose()));
+                        BigDecimal diff = latterClose.subtract(technicalSignal.getClose());
+                        diff = diff.divide(technicalSignal.getClose(), RoundingMode.HALF_UP);
+
+                        if (technicalSignal.getAction() == Action.SELL || technicalSignal.getAction() == Action.STRONGSELL) {
+                            diff = diff.multiply(new BigDecimal(-1));
+                        }
+
+                        if (technicalSignal.oneMonthGain != null) {
+                            technicalSignal.oneMonthGain.add(diff);
+                        } else {
+                            technicalSignal.oneMonthGain = diff;
+                        }
+                    }
+                }
+            }
+        }
+
+        return signals;
     }
 
     private BacktestSummary runMoneyFlowIndexBacktest(List<Quote> quotes) {
@@ -441,7 +482,13 @@ public class BacktestMainServiceImpl
             if (i > 14) {
                 List<Quote> sublist = quotes.subList(i - 14, i + 1);
                 MfiPayload payload = this.createList(sublist, period);
-                Signal technicalSignal = mfi.onTick(sublist.get(sublist.size() - 1).getDate(), payload.high, payload.low, payload.close, payload.volume, payload.period);
+                mfi.high = payload.high;
+                mfi.low = payload.low;
+                mfi.close = payload.close;
+                mfi.volume = payload.volume;
+                mfi.period = payload.period;
+                Signal technicalSignal = mfi.onTick(sublist.get(sublist.size() - 1).getDate());
+
                 if (technicalSignal != null) {
                     signals.add(technicalSignal);
                     int oneMonthIdx = i + 20;
