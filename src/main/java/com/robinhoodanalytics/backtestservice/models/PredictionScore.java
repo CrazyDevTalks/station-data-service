@@ -6,5 +6,5 @@ public class PredictionScore {
     public int guesses;
     public int correct;
     public BigDecimal score;
-    public int nextOutput;
+    public BigDecimal nextOutput;
 }

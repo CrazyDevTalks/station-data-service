@@ -10,11 +10,11 @@ public class Order {
         buy, sell;
     }
 
-    private Date date;
-    private Stock stock;
-    private int quantity;
-    private BigDecimal price;
-    private Side side;
+    public Date date;
+    public Stock stock;
+    public int quantity;
+    public BigDecimal price;
+    public Side side;
 
     private boolean filled;
 

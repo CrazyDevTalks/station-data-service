@@ -1,6 +1,9 @@
 package com.robinhoodanalytics.backtestservice.backtest;
 
 import com.robinhoodanalytics.backtestservice.BacktestServiceApplication;
+import com.robinhoodanalytics.backtestservice.backtest.models.BacktestSettings;
+import com.robinhoodanalytics.backtestservice.backtest.models.PrecogBacktestResults;
+import com.robinhoodanalytics.backtestservice.models.BacktestSummary;
 import com.robinhoodanalytics.backtestservice.models.IntradayQuote;
 import com.robinhoodanalytics.backtestservice.trainer.TrainerService;
 import com.robinhoodanalytics.backtestservice.models.Quote;
@@ -141,7 +144,6 @@ public class BacktestController {
                                                                         @RequestParam("s") int shortTerm,
                                                                         @RequestParam("l") int longTerm,
                                                                         @RequestParam("p") int bbandPeriod
-
     ) {
 
         try {
@@ -169,6 +171,55 @@ public class BacktestController {
             return ResponseEntity.ok(_backtestMainService.getMeanReversionTimeline(symbol, from, to, shortTerm, longTerm, bbandPeriod));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e);
+        }
+    }
+
+    @RequestMapping(
+            value = "/strategy/rnn",
+            method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity rnnBacktest(@RequestParam("symbol") String symbol,
+                                               @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
+                                               @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to
+    ) {
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.setContentType(MediaType.APPLICATION_JSON);
+
+        PrecogBacktestResults[] results = _backtestMainService.backtestRnn(symbol, from, to);
+
+        return new ResponseEntity<>(results, responseHeaders, HttpStatus.OK);
+    }
+
+    @RequestMapping(
+            value = "/strategy/hmm",
+            method = RequestMethod.POST)
+    @ResponseBody
+    public ResponseEntity hmmBacktest() {
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.setContentType(MediaType.APPLICATION_JSON);
+
+        _trainService.trainHmmModel();
+
+        return new ResponseEntity<>(null, responseHeaders, HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "strategy", method = RequestMethod.POST)
+    ResponseEntity<BacktestSummary> backtestStrategy(@RequestBody BacktestSettings body)
+    {
+        try {
+            HttpHeaders responseHeaders = new HttpHeaders();
+            responseHeaders.setContentType(MediaType.APPLICATION_JSON);
+            BacktestSummary results = _backtestMainService.backtestStrategy(body.symbol, body.strategy,
+                    body.from, body.to, body.settings);
+
+            if (results != null) {
+                return new ResponseEntity<BacktestSummary>(results, responseHeaders, HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e) {
+            log.error("Error: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 }

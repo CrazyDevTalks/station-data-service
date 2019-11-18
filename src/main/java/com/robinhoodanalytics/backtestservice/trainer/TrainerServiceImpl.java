@@ -15,6 +15,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
+import smile.sequence.HMM;
+import smile.stat.distribution.EmpiricalDistribution;
 
 import java.math.BigDecimal;
 import java.time.*;
@@ -32,22 +34,37 @@ public class TrainerServiceImpl implements TrainerService {
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
     @Override
+    public List<Quote> sanitizeQuotes(String symbol, Date from, Date to) {
+        return _quoteService.getHistoricalQuotes(symbol, from, to)
+                .stream().map(e  -> {
+                    Date newDate = DateParser.standardizeDate(e.getDate());
+                    e.setDate(newDate);
+                    return e;
+                }).collect(Collectors.toList());
+    }
+
+    @Override
+    public AggregatedQuote[] convertTrainingData(String symbol, Date from, Date to) {
+        List<Quote> quotes = this.sanitizeQuotes(symbol, from, to);
+
+        if (quotes != null) {
+            AggregatedQuote[] items = aggregateQuotes(quotes);
+
+            return items;
+        }
+        return null;
+    }
+
+    @Override
     public ResponseEntity train(String symbol, Date from, Date to, boolean save) {
         try {
             HttpHeaders responseHeaders = new HttpHeaders();
             responseHeaders.setContentType(MediaType.APPLICATION_JSON);
 
-            List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, from, to)
-                                                .stream().map(e  -> {
-                                                    Date newDate = DateParser.standardizeDate(e.getDate());
-                                                    e.setDate(newDate);
-                                                    return e;
-                                                }).collect(Collectors.toList());
+            AggregatedQuote[] items = this.convertTrainingData(symbol, from, to);
 
-            if (quotes != null) {
-                AggregatedQuote[] items = aggregateQuotes(quotes);
-
-                if (save && items.length > 0) {
+            if (items != null) {
+                if (save) {
                     List<AggregatedQuote> quoteList = Arrays.asList(items);
 
                     _aggregatedQuoteRepo.saveAll(quoteList);
@@ -221,5 +238,53 @@ public class TrainerServiceImpl implements TrainerService {
             return 0;
         }
         return comp;
+    }
+
+    public void trainHmmModel() {
+        double[] pi = {0.5, 0.5};
+        double[][] a = {{0.8, 0.2}, {0.2, 0.8}};
+        double[][] b = {{0.6, 0.4}, {0.4, 0.6}};
+        log.info("learn");
+        EmpiricalDistribution initial = new EmpiricalDistribution(pi);
+
+        EmpiricalDistribution[] transition = new EmpiricalDistribution[a.length];
+        for (int i = 0; i < transition.length; i++) {
+            transition[i] = new EmpiricalDistribution(a[i]);
+        }
+
+        EmpiricalDistribution[] emission = new EmpiricalDistribution[b.length];
+        for (int i = 0; i < emission.length; i++) {
+            emission[i] = new EmpiricalDistribution(b[i]);
+        }
+
+        String[] symbols = {"open_down", "open_up"};
+        String[][] sequences = new String[5000][];
+        int[][] labels = new int[5000][];
+        for (int i = 0; i < sequences.length; i++) {
+            sequences[i] = new String[30 * ((int) Math.random() * 5 + 1)];
+            labels[i] = new int[sequences[i].length];
+            int state = (int) initial.rand();
+            sequences[i][0] = symbols[(int) emission[state].rand()];
+            labels[i][0] = state;
+            for (int j = 1; j < sequences[i].length; j++) {
+                state = (int) transition[state].rand();
+                sequences[i][j] = symbols[(int) emission[state].rand()];
+                labels[i][j] = state;
+            }
+        }
+
+        HMM<String> hmm = new HMM(sequences, labels);
+        log.info("{}", hmm);
+
+        double[] pi2 = {0.55, 0.45};
+        double[][] a2 = {{0.7, 0.3}, {0.15, 0.85}};
+        double[][] b2 = {{0.45, 0.55}, {0.3, 0.7}};
+        HMM<String> init = new HMM<>(pi2, a2, b2, symbols);
+        HMM<String> result = init.learn(sequences, 100);
+        log.info("results: {}", result);
+
+        String[] o = {"open_up", "open_up", "open_down", "open_down", "open_down", "open_up", "open_up", "open_up", "open_down", "open_down", "open_down", "open_up", "open_up", "open_up", "open_up"};
+        int[] prediction = init.predict(o);
+        log.info("prediction: {}", prediction);
     }
 }

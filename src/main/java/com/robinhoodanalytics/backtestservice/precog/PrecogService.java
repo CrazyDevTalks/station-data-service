@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import java.time.LocalDateTime;
 
 public interface PrecogService {
+    ResponseEntity<int[]> retrievePrediction(double[] input);
     ResponseEntity savePrediction(Predictions payload);
     ResponseEntity findPrediction(String symbol, LocalDateTime datetime);
 }
