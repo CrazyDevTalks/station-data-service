@@ -30,7 +30,6 @@ public class BbandMfi implements Strategy{
 
     @Override
     public Signal onTick(Date date) {
-        Signal sig = null;
         String apiUrl = "http://localhost:9000/api/backtest/mfi";
 
         MfiPayload body = new MfiPayload(this.high, this.low, this.close, this.volume, this.mfiPeriod);
@@ -47,13 +46,13 @@ public class BbandMfi implements Strategy{
         BollingerBand bands = this.getBollingerBand(this.bbandClose);
 
         if (closePrice.compareTo(bands.lower) < 0 && mfiResponse.getBody().get(0).get(0).doubleValue() < 15) {
-            sig = new Signal(date, Action.STRONGBUY, closePrice, volume[volume.length - 1]);
+            return new Signal(date, Action.STRONGBUY, closePrice, volume[volume.length - 1]);
         }
 
         if (closePrice.compareTo(bands.upper) > 0 && mfiResponse.getBody().get(0).get(0).doubleValue() > 30) {
-            sig = new Signal(date, Action.STRONGSELL, closePrice, volume[volume.length - 1]);
+            return new Signal(date, Action.STRONGSELL, closePrice, volume[volume.length - 1]);
         }
-        return sig;
+        return new Signal(date, Action.INDETERMINANT, closePrice, volume[volume.length - 1]);
     }
 
     private List<List<BigDecimal>> requestBBand(double[] real, int period) {

@@ -431,9 +431,9 @@ public class BacktestMainServiceImpl
                 bb.bbandPeriod = bbandPeriod;
                 bb.bbandClose = bbList.close;
                 Signal technicalSignal = bb.onTick(sublist.get(sublist.size() - 1).getDate());
-
+                signals.add(technicalSignal);
                 if (technicalSignal != null) {
-                    signals.add(technicalSignal);
+
                     int oneMonthIdx = i + 20;
                     if (oneMonthIdx < quotes.size()) {
                         BigDecimal latterClose = new BigDecimal(String.valueOf(quotes.get(oneMonthIdx).getClose()));
