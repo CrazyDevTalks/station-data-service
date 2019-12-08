@@ -142,12 +142,11 @@ public class BacktestController {
                                                                         @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to,
                                                                         @RequestParam(value = "d", required = false) BigDecimal deviation,
                                                                         @RequestParam("s") int shortTerm,
-                                                                        @RequestParam("l") int longTerm,
-                                                                        @RequestParam("p") int bbandPeriod
+                                                                        @RequestParam("l") int longTerm
     ) {
 
         try {
-            return ResponseEntity.ok(_backtestMainService.getMeanReversionResults(symbol, from, to, deviation, shortTerm, longTerm, bbandPeriod));
+            return ResponseEntity.ok(_backtestMainService.getMeanReversionResults(symbol, from, to, deviation, shortTerm, longTerm));
         } catch (Exception e) {
             log.error("Error: ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
@@ -162,13 +161,11 @@ public class BacktestController {
                                              @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
                                              @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to,
                                              @RequestParam("s") int shortTerm,
-                                             @RequestParam("l") int longTerm,
-                                             @RequestParam("p") int bbandPeriod
-
+                                             @RequestParam("l") int longTerm
     ) {
 
         try {
-            return ResponseEntity.ok(_backtestMainService.getMeanReversionTimeline(symbol, from, to, shortTerm, longTerm, bbandPeriod));
+            return ResponseEntity.ok(_backtestMainService.getMeanReversionTimeline(symbol, from, to, shortTerm, longTerm));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e);
         }
