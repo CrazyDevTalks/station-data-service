@@ -364,18 +364,21 @@ public class BacktestMainServiceImpl
     public BacktestSummary backtestStrategy(String symbol, String strategy, Date from, Date to, double[] settings)
         throws Exception {
         if (strategy == "BollingerBand") {
-            return this.getMeanReversionResults(symbol, from, to, new BigDecimal(settings[0], MathContext.DECIMAL64), (int) settings[1], (int) settings[2]);
+            return getMeanReversionResults(symbol, from, to, new BigDecimal(settings[0], MathContext.DECIMAL64), (int) settings[1], (int) settings[2]);
         }
 
         List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, from, to);
 
         switch(strategy.toUpperCase()) {
             case "MONEYFLOWINDEX":
-                return this.runMoneyFlowIndexBacktest(quotes);
+                return runMoneyFlowIndexBacktest(quotes);
             case "BBMFI":
-                return this.runBbandMoneyFlowIndexBacktest(quotes);
+                return runBbandMoneyFlowIndexBacktest(quotes);
             case "MOVINGAVERAGECROSSOVER":
-                return this.runMovingAverageCrossOver(quotes, new BigDecimal(settings[0], MathContext.DECIMAL64), (int) settings[1], (int) settings[2]);
+                return runMovingAverageCrossOver(quotes, new BigDecimal(settings[0], MathContext.DECIMAL64),
+                        (int) settings[1], (int) settings[2]);
+            case "FINDRESISTANCE":
+                return runFindResistance(quotes);
         }
 
         return null;
@@ -384,7 +387,7 @@ public class BacktestMainServiceImpl
     @Override
     public ResponseEntity trainSignals(String symbol, String strategy, Date from, Date to) {
         List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, from, to);
-        List<Signal> signals = this.getBbandMfiSignals(quotes);
+        List<Signal> signals = getBbandMfiSignals(quotes);
         return null;
     }
 
@@ -557,19 +560,16 @@ public class BacktestMainServiceImpl
             if (quote.getClose() == null) {
                 log.error("Closing price missing: {}", quote.toString());
             } else {
-
                 ma.shortTermWindow.add(quote.getClose());
                 ma.longTermWindow.add(quote.getClose());
                 ma.shortTermAverageHistory = shortTermAvg;
+
                 Signal technicalSignal = ma.onTick(quote.getDate());
 
                 technicalSignal.shortTermSize = shortTermSize;
                 technicalSignal.longTermSize = longTermSize;
-                technicalSignal.setClose(quote.getClose());
-                technicalSignal.setVolume(quote.getVolume());
-                technicalSignal = this.setOneMonthGain(quotes, i + 20, technicalSignal);
-                technicalSignal = this.setOneWeekGain(quotes, i + 5, technicalSignal);
-                signals.add(technicalSignal);
+
+                signals.add(addSignalData(i, quote, quotes, technicalSignal));
 
                 shortTermAvg = addToQueue(ma.shortTermWindow.getAverage(), shortTermAvg, 5);
             }
@@ -578,8 +578,16 @@ public class BacktestMainServiceImpl
         return signals;
     }
 
-    private BacktestSummary runMovingAverageCrossOver(List<Quote> quotes,  BigDecimal deviation, int shortTerm, int longTerm) {
-        List<Signal> signals = this.getMACrossoverSignals(quotes, deviation, shortTerm, longTerm);
+    private Signal addSignalData(int index, Quote quote, List<Quote> quotes, Signal signal) {
+        signal.setClose(quote.getClose());
+        signal.setVolume(quote.getVolume());
+        signal = setOneMonthGain(quotes, index + 20, signal);
+        signal = setOneWeekGain(quotes, index + 5, signal);
+        return signal;
+    }
+
+    private BacktestSummary runMovingAverageCrossOver(List<Quote> quotes, BigDecimal deviation, int shortTerm, int longTerm) {
+        List<Signal> signals = getMACrossoverSignals(quotes, deviation, shortTerm, longTerm);
         BacktestSummary summary = calculateReturns(signals);
 
         if (signals.size() > 0) {
@@ -593,6 +601,45 @@ public class BacktestMainServiceImpl
 
         return summary;
     }
+
+    private BacktestSummary runFindResistance(List<Quote> quotes) {
+        List<Signal> signals = this.getResistanceSignals(quotes);
+        BacktestSummary summary = calculateReturns(signals);
+
+        if (signals.size() > 0) {
+            Signal lastSignal = signals.get(signals.size() - 1);
+            summary.lastPrice = lastSignal.getClose();
+            summary.lastVolume = lastSignal.getVolume();
+            summary.recommendation = lastSignal.getAction();
+            summary.algo = "FindResistance";
+            summary.signals = signals;
+        }
+
+        return summary;
+    }
+
+    private List<Signal> getResistanceSignals(List<Quote> quotes) {
+        List<Signal> signals = new ArrayList<>();
+
+        int windowSize = 10;
+        FindResistance eq = new FindResistance(quotes, windowSize,
+                5, 300);
+
+        for (int i = 0; i < quotes.size(); i++) {
+            Quote quote = quotes.get(i);
+
+            eq.setParameters(quote, i);
+
+            Signal technicalSignal = eq.onTick(quote.getDate());
+
+            signals.add(addSignalData(i, quote, quotes, technicalSignal));
+
+            signals.add(technicalSignal);
+        }
+        return signals;
+    }
+
+
 
     private void printLog(String title, Date d, Object o) {
         if(logOn) {
