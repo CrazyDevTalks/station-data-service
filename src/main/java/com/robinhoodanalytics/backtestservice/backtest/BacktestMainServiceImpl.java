@@ -632,7 +632,7 @@ public class BacktestMainServiceImpl
 
             Signal technicalSignal = eq.onTick(quote.getDate());
 
-            signals.add(addSignalData(i, quote, quotes, technicalSignal));
+            signals.add(this.addSignalData(i, quote, quotes, technicalSignal));
 
             signals.add(technicalSignal);
         }

@@ -1,6 +1,7 @@
 package com.robinhoodanalytics.backtestservice.strategy;
 
 import com.robinhoodanalytics.backtestservice.BacktestServiceApplication;
+import com.robinhoodanalytics.backtestservice.models.Action;
 import com.robinhoodanalytics.backtestservice.models.Quote;
 import com.robinhoodanalytics.backtestservice.models.Signal;
 import org.slf4j.Logger;
@@ -41,11 +42,18 @@ public class FindResistance implements Strategy {
     @Override
     public Signal onTick(Date date) {
         findUpperLowerResistance();
-        findMatchingMovingAverageCrossOvers();
+        HashMap<Integer, BigDecimal> upperMovingAverageMap = getMovingAverages(this.upperResistanceIdx, "high");
+        HashMap<Integer, BigDecimal> lowerMovingAverageMap = getMovingAverages(this.lowerResistanceIdx, "low");
 
+        log.info("upper resistance ma map: {} ", upperMovingAverageMap);
+
+        log.info("lower resistance ma map: {} ", lowerMovingAverageMap);
+
+        this.findMovingAverageCrossOver(upperMovingAverageMap);
+        
         setNextParameters(currentQuote, currentQuoteIndex);
 
-        return null;
+        return new Signal(date, Action.INDETERMINANT);
     }
 
     public void setParameters(Quote quote, int idx) {
@@ -54,9 +62,9 @@ public class FindResistance implements Strategy {
     }
 
     private void setNextParameters(Quote quote, int idx) {
-        addToQueue(quotesWindowIndices, idx, windowSize);
-        addToQueue(highsHistory, quote.getHigh(), maxMovingAveragePeriod);
-        addToQueue(lowsHistory, quote.getLow(), maxMovingAveragePeriod);
+        this.quotesWindowIndices = this.addToQueue(this.quotesWindowIndices, idx, windowSize);
+        this.highsHistory = this.addToQueue(this.highsHistory, quote.getHigh(), maxMovingAveragePeriod);
+        this.lowsHistory = this.addToQueue(this.lowsHistory, quote.getLow(), maxMovingAveragePeriod);
     }
 
     private <T> Deque<T> addToQueue(Deque<T> list, T item, int maxSize) {
@@ -70,27 +78,41 @@ public class FindResistance implements Strategy {
         return list;
     }
 
-    private void findMatchingMovingAverageCrossOvers() {
-        HashMap<Integer, BigDecimal> upperMovingAverageMap = new HashMap<>();
+    private HashMap<Integer, BigDecimal> getMovingAverages(int index, String priceBar) {
+        HashMap<Integer, BigDecimal> movingAverageMap = new HashMap<>();
 
-        int startIdx = this.upperResistanceIdx - maxMovingAveragePeriod;
+        int startIdx = index - maxMovingAveragePeriod;
         startIdx =  startIdx > 0 ? startIdx : 0;
 
         int counter = 0;
         BigDecimal sum = BigDecimal.ZERO;
         for (int i = startIdx; i < this.upperResistanceIdx; i++) {
-            sum.add(this.quotes.get(i).getHigh());
+            BigDecimal price;
+            switch (priceBar) {
+                case "high":
+                    price = this.quotes.get(i).getHigh();
+                    break;
+                case "low":
+                    price = this.quotes.get(i).getLow();
+                    break;
+                default:
+                    price = this.quotes.get(i).getClose();
+                    break;
+            }
+            sum = sum.add(price);
 
             if (counter > 4) {
-                upperMovingAverageMap.put(counter, sum.divide(new BigDecimal(counter),2, RoundingMode.HALF_EVEN));
+                movingAverageMap.put(counter, sum.divide(new BigDecimal(counter),2, RoundingMode.HALF_EVEN));
             }
             counter++;
         }
+
+        return movingAverageMap;
     }
 
     private void findUpperLowerResistance() {
         Iterator<Integer> window = this.quotesWindowIndices.iterator();
-        if (!window.hasNext()) {
+        if (window.hasNext()) {
             int high = window.next();
             int low = high;
 
@@ -105,9 +127,16 @@ public class FindResistance implements Strategy {
                 }
             }
 
-            upperResistanceIdx = high;
-            lowerResistanceIdx = low;
+            this.upperResistanceIdx = high;
+            this.lowerResistanceIdx = low;
+            log.info("Found resistance: {} - {}",this.quotes.get(this.lowerResistanceIdx).getLow(),
+                    this.quotes.get(this.upperResistanceIdx).getHigh());
         }
+    }
 
+    private void findMovingAverageCrossOver(HashMap<Integer, BigDecimal> movingAverages) {
+        movingAverages.entrySet().forEach(entry->{
+            System.out.println(entry.getKey() + " " + entry.getValue());
+        });
     }
 }
