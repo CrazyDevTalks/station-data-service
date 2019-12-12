@@ -623,7 +623,7 @@ public class BacktestMainServiceImpl
 
         int windowSize = 10;
         FindResistance eq = new FindResistance(quotes, windowSize,
-                5, 300);
+                4, 300);
 
         for (int i = 0; i < quotes.size(); i++) {
             Quote quote = quotes.get(i);
