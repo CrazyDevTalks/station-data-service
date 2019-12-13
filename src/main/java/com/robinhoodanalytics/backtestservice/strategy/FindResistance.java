@@ -4,6 +4,7 @@ import com.robinhoodanalytics.backtestservice.BacktestServiceApplication;
 import com.robinhoodanalytics.backtestservice.models.Action;
 import com.robinhoodanalytics.backtestservice.models.Quote;
 import com.robinhoodanalytics.backtestservice.models.Signal;
+import com.robinhoodanalytics.backtestservice.utils.Statistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -17,10 +18,10 @@ import java.math.RoundingMode;
 import java.util.*;
 
 class Payload {
-    BigDecimal[] reals;
-    int period;
-    Payload(BigDecimal[] reals, int period) {
-        this.reals = reals;
+    public BigDecimal[] real;
+    public int period;
+    public Payload(BigDecimal[] real, int period) {
+        this.real = real;
         this.period = period;
     }
 }
@@ -39,6 +40,8 @@ public class FindResistance implements Strategy {
     private int currentQuoteIndex;
     private int upperResistanceIdx;
     private int lowerResistanceIdx;
+    private BigDecimal upperResistance;
+    private BigDecimal lowerResistance;
 
     private Quote currentQuote;
 
@@ -57,13 +60,10 @@ public class FindResistance implements Strategy {
 
     @Override
     public Signal onTick(Date date) {
+        Signal signal = new Signal(date, Action.INDETERMINANT);
         findUpperLowerResistance();
         HashMap<BigDecimal, List<Integer>> upperMovingAverageMap = getMovingAverages(this.upperResistanceIdx, "high");
         HashMap<BigDecimal, List<Integer>> lowerMovingAverageMap = getMovingAverages(this.lowerResistanceIdx, "low");
-
-//        log.info("upper resistance ma map: {} ", upperMovingAverageMap);
-//
-//        log.info("lower resistance ma map: {} ", lowerMovingAverageMap);
 
         ArrayList<List<Integer>> movingAveragePairsHigh = this.findMovingAverageCrossOver(upperMovingAverageMap);
         ArrayList<List<Integer>> movingAveragePairsLow = this.findMovingAverageCrossOver(lowerMovingAverageMap);
@@ -71,28 +71,62 @@ public class FindResistance implements Strategy {
         if (movingAveragePairsHigh != null) {
             this.upperResistanceMovingAveragePairs = movingAveragePairsHigh;
 
-            int[] pair = getPair(this.upperResistanceMovingAveragePairs);
-            log.info("Using pair {}", pair);
-            if (currentQuoteIndex - pair[0] > -1 && currentQuoteIndex - pair[1] > -1) {
-                List<BigDecimal[]> reals = this.buildQuoteLists(pair[0], pair[1], currentQuoteIndex, quotes, "high");
+            for(List<Integer> pairList: this.upperResistanceMovingAveragePairs){
+                boolean isCrossover = false;
+                int[] pair = getPair(pairList);
+                if(pair != null) {
+                    if (currentQuoteIndex - pair[0] > -1 && currentQuoteIndex - pair[1] > -1) {
+                        List<BigDecimal[]> reals = this.buildQuoteLists(pair[0], pair[1], currentQuoteIndex, quotes, "high");
 
-                log.info("{}, {}", reals.get(0).length, reals.get(1).length);
+                        List<List<BigDecimal>> fastSma = this.getSimpleMovingAverage(reals.get(0), pair[0]);
+                        List<List<BigDecimal>> slowSma = this.getSimpleMovingAverage(reals.get(1), pair[1]);
 
-                List<List<BigDecimal>> fastSma = this.getSimpleMovingAverage(reals.get(0), pair[0]);
-                List<List<BigDecimal>> slowSma = this.getSimpleMovingAverage(reals.get(1), pair[1]);
-                log.info("fastSma {}", fastSma);
-                log.info("slowSma {}", slowSma);
-
+                        isCrossover = this.isCrossoverEvent(fastSma.get(0).get(0), slowSma.get(0).get(0));
+                    }
+                }
+                if (isCrossover) {
+                    log.info("Found upper MA cross over {}, {} -> {}", pair[0], pair[1], this.quotes.get(currentQuoteIndex));
+                    this.upperResistance = this.currentQuote.getHigh();
+                    signal.upperResistance = this.upperResistance;
+                    signal.shortTermSize = pair[0];
+                    signal.longTermSize = pair[1];
+                    signal.setAction(Action.STRONGSELL);
+                    break;
+                }
             }
         }
 
         if (movingAveragePairsLow != null) {
             this.lowerResistanceMovingAveragePairs = movingAveragePairsLow;
+
+            for(List<Integer> pairList: this.lowerResistanceMovingAveragePairs){
+                boolean isCrossover = false;
+                int[] pair = getPair(pairList);
+                if(pair != null) {
+                    if (currentQuoteIndex - pair[0] > -1 && currentQuoteIndex - pair[1] > -1) {
+                        List<BigDecimal[]> reals = this.buildQuoteLists(pair[0], pair[1], currentQuoteIndex, quotes, "low");
+
+                        List<List<BigDecimal>> fastSma = this.getSimpleMovingAverage(reals.get(0), pair[0]);
+                        List<List<BigDecimal>> slowSma = this.getSimpleMovingAverage(reals.get(1), pair[1]);
+
+                        isCrossover = this.isCrossoverEvent(fastSma.get(0).get(0), slowSma.get(0).get(0));
+                    }
+                }
+                if (isCrossover) {
+                    log.info("Found lower MA cross over {}, {} -> {}", pair[0], pair[1], this.quotes.get(currentQuoteIndex));
+                    this.lowerResistance = this.currentQuote.getLow();
+                    signal.lowerResistance = this.lowerResistance;
+                    signal.shortTermSize = pair[0];
+                    signal.longTermSize = pair[1];
+                    signal.setAction(Action.STRONGBUY);
+                    break;
+                }
+            }
         }
 
         setNextParameters(currentQuote, currentQuoteIndex);
 
-        return new Signal(date, Action.INDETERMINANT);
+        return signal;
     }
 
     public void setParameters(Quote quote, int idx) {
@@ -106,10 +140,17 @@ public class FindResistance implements Strategy {
         this.lowsHistory = this.addToQueue(this.lowsHistory, quote.getLow(), maxMovingAveragePeriod);
     }
 
-    private int[] getPair(ArrayList<List<Integer>> pairs) {
-        List<Integer> firstPairs = pairs.get(0);
-        int[] pair = {firstPairs.get(0), firstPairs.get(firstPairs.size() - 1)};
-        return pair;
+    private boolean isCrossoverEvent(BigDecimal fastAvg, BigDecimal slowAvg) {
+        BigDecimal change = Statistics.percentChange(slowAvg, fastAvg);
+        return change.compareTo(BigDecimal.ZERO) == 0;
+    }
+
+    private int[] getPair(List<Integer> set) {
+        if (set.size() > 1 && set.get(0) * 2 < set.get(set.size() - 1)) {
+            int[] pair = { set.get(0), set.get(set.size() - 1) };
+            return pair;
+        }
+        return null;
     }
 
     private List<BigDecimal[]> buildQuoteLists(int fastMovingAveragePeriod, int slowMovingAveragePeriod, int currentIndex, List<Quote> quotes, String priceBar) {
@@ -145,8 +186,6 @@ public class FindResistance implements Strategy {
         RestTemplate restTemplate = new RestTemplate();
 
         HttpEntity<Payload> entity = new HttpEntity<>(body);
-
-        log.info("Sending {}", body);
 
         ResponseEntity<List<List<BigDecimal>>> response = restTemplate.exchange(apiUrl,
                 HttpMethod.POST, entity, new ParameterizedTypeReference<List<List<BigDecimal>>>() {
@@ -246,7 +285,6 @@ public class FindResistance implements Strategy {
         ArrayList<List<Integer>> foundPairs = new ArrayList<>();
         movingAverages.entrySet().forEach(entry->{
             if (this.hasPairs(entry.getValue())) {
-                log.info("Found pair{ {} -> {}", entry.getKey(), entry.getValue());
                 foundPairs.add(entry.getValue());
             }
         });

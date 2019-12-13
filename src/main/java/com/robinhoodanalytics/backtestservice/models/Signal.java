@@ -48,6 +48,10 @@ public class Signal {
 
     public int longTermSize;
 
+    public BigDecimal upperResistance;
+
+    public BigDecimal lowerResistance;
+
     public Signal(Date date, Action action, BigDecimal deviation,
                   BigDecimal shortTermAverage, BigDecimal longTermAverage,
                   BigDecimal volumeChange, BigDecimal close, long volume) {

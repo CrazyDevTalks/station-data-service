@@ -317,12 +317,30 @@ public class BacktestMainServiceImpl
                     printLog("@ ", null, signal.getClose());
                     Order o = new Order(s, 1, signal.getClose(), Order.Side.sell, signal.getDate());
                     results.orderHistory.add(o);
+                } else {
+                    printLog("Shorting on: ", signal.getDate(), results.buys);
+
+                    results.totalTrades++;
+                    results.buys.add(signal.getClose().multiply(new BigDecimal(-1)));
+                    Order o = new Order(s, 1, signal.getClose().multiply(new BigDecimal(-1)), Order.Side.sell, signal.getDate());
+                    results.orderHistory.add(o);
                 }
             } else if (signal.getAction() == Action.STRONGBUY) {
                 results.totalTrades++;
-                results.buys.add(signal.getClose());
-                Order o = new Order(s, 1, signal.getClose(), Order.Side.buy, signal.getDate());
-                results.orderHistory.add(o);
+                if (results.buys.size() > 0 && results.buys.peekLast().compareTo(BigDecimal.ZERO) < 0) {
+                    BigDecimal holding = results.buys.removeLast();
+                    BigDecimal profit = holding.add(signal.getClose()).multiply(new BigDecimal(-1));
+
+                    results.invested = results.invested.add(holding.multiply(new BigDecimal(-1)));
+                    results.total = results.total.add(profit);
+
+                    Order o = new Order(s, 1, signal.getClose(), Order.Side.buy, signal.getDate());
+                    results.orderHistory.add(o);
+                } else {
+                    results.buys.add(signal.getClose());
+                    Order o = new Order(s, 1, signal.getClose(), Order.Side.buy, signal.getDate());
+                    results.orderHistory.add(o);
+                }
             }
         }
 
@@ -412,7 +430,7 @@ public class BacktestMainServiceImpl
         int period = 14;
         int bbandPeriod = 80;
         List<Signal> signals = new ArrayList<>();
-
+        log.info("Quotes: {}", quotes.size());
         for (int i = 0; i < quotes.size(); i++) {
             if (i > bbandPeriod) {
                 List<Quote> sublist = quotes.subList(i - 14, i + 1);
@@ -627,14 +645,11 @@ public class BacktestMainServiceImpl
 
         for (int i = 0; i < quotes.size(); i++) {
             Quote quote = quotes.get(i);
-
             eq.setParameters(quote, i);
 
             Signal technicalSignal = eq.onTick(quote.getDate());
 
             signals.add(this.addSignalData(i, quote, quotes, technicalSignal));
-
-            signals.add(technicalSignal);
         }
         return signals;
     }
