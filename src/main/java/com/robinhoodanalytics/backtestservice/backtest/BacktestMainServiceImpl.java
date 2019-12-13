@@ -329,7 +329,7 @@ public class BacktestMainServiceImpl
                 results.totalTrades++;
                 if (results.buys.size() > 0 && results.buys.peekLast().compareTo(BigDecimal.ZERO) < 0) {
                     BigDecimal holding = results.buys.removeLast();
-                    BigDecimal profit = holding.add(signal.getClose()).multiply(new BigDecimal(-1));
+                    BigDecimal profit = holding.add(signal.getClose());
 
                     results.invested = results.invested.add(holding.multiply(new BigDecimal(-1)));
                     results.total = results.total.add(profit);
@@ -639,7 +639,7 @@ public class BacktestMainServiceImpl
     private List<Signal> getResistanceSignals(List<Quote> quotes) {
         List<Signal> signals = new ArrayList<>();
 
-        int windowSize = 10;
+        int windowSize = 20;
         FindResistance eq = new FindResistance(quotes, windowSize,
                 4, 300);
 
