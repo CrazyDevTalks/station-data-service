@@ -88,7 +88,7 @@ public class FindResistance implements Strategy {
                     }
                 }
                 if (isCrossover) {
-                    log.info("Found upper MA cross over {}, {} -> {}", pair[0], pair[1], this.quotes.get(currentQuoteIndex));
+//                    log.info("Found upper MA cross over {}, {} -> {}", pair[0], pair[1], this.quotes.get(currentQuoteIndex));
                     this.upperResistance = this.currentQuote.getHigh();
                     signal.upperResistance = this.upperResistance;
                     signal.shortTermSize = pair[0];
@@ -114,7 +114,7 @@ public class FindResistance implements Strategy {
                     }
                 }
                 if (isCrossover) {
-                    log.info("Found lower MA cross over {}, {} -> {}", pair[0], pair[1], this.quotes.get(currentQuoteIndex));
+//                    log.info("Found lower MA cross over {}, {} -> {}", pair[0], pair[1], this.quotes.get(currentQuoteIndex));
                     this.lowerResistance = this.currentQuote.getLow();
                     signal.lowerResistance = this.lowerResistance;
                     signal.shortTermSize = pair[0];

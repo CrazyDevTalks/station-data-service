@@ -75,8 +75,10 @@ public class QuoteServiceImpl
     public List<Quote> retrieveQuotes(String symbol, Date from, Date to)
             throws RestClientException
     {
-        Date start = DateParser.toTradeDay(from, 0);
-        Date end = DateParser.toTradeDay(to, 23);
+        log.info("start - end: {} -> {}", from, to);
+
+        Date start = DateParser.toTradeDay(from, 0, false);
+        Date end = DateParser.toTradeDay(to, 23, true);
 
         symbol = symbol.toUpperCase();
         List<Quote> quotes = quoteRepo.findBySymbolAndDateBetween(symbol, start, end);
@@ -93,15 +95,16 @@ public class QuoteServiceImpl
         if (quotes.size() > 0 &&
             (double) quotes.size() - DateParser.estimateTradeDays(days) >= -50.0 &&
             DateParser.compareTradeDays(start, quotes.get(0).getDate()) >= 0 &&
-            DateParser.compareTradeDays(DateParser.toTradeDay(end, 0), quotes.get(quotes.size() - 1).getDate()) <= 0) {
-            log.info("Expected: {}, Found: {} ", DateParser.toTradeDay(end, 0), quotes.get(quotes.size() - 1).getDate());
+            DateParser.compareTradeDays(DateParser.toTradeDay(end, 0, false), quotes.get(quotes.size() - 1).getDate()) <= 0) {
+            log.info("Expected: {}, Found: {} ", DateParser.toTradeDay(end, 0, false), quotes.get(quotes.size() - 1).getDate());
 
             log.info("Using DB results");
             return quotes;
         }
         else {
             quoteRepo.deleteAll(quotes);
-            return addQuotes(symbol, diff);
+            addQuotes(symbol, diff);
+            return quoteRepo.findBySymbolAndDateBetween(symbol, start, end);
         }
     }
 
