@@ -45,7 +45,7 @@ public class BacktestMainServiceImpl
 
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
-    private static boolean logOn = true;
+    private static boolean logOn = false;
 
     @Override
     public PrecogBacktestResults[] backtestRnn(String symbol, Date from, Date to) {
