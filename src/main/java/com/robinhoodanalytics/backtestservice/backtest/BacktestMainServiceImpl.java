@@ -7,18 +7,13 @@ import com.robinhoodanalytics.backtestservice.precog.PrecogService;
 import com.robinhoodanalytics.backtestservice.quotes.QuoteService;
 import com.robinhoodanalytics.backtestservice.strategy.*;
 import com.robinhoodanalytics.backtestservice.trainer.TrainerService;
-import com.robinhoodanalytics.backtestservice.utils.DateParser;
 import com.robinhoodanalytics.backtestservice.utils.RollingAverage;
 import com.robinhoodanalytics.backtestservice.utils.Statistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BaseBar;
 import org.ta4j.core.BaseTimeSeries;
@@ -50,7 +45,7 @@ public class BacktestMainServiceImpl
 
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
-    private static boolean logOn = false;
+    private static boolean logOn = true;
 
     @Override
     public PrecogBacktestResults[] backtestRnn(String symbol, Date from, Date to) {
@@ -304,7 +299,7 @@ public class BacktestMainServiceImpl
 
         for (Signal signal : signals) {
             if (signal.getAction() == Action.STRONGSELL) {
-                if (results.buys.size() > 0) {
+                if (results.buys.size() > 0 && results.buys.peekFirst().compareTo(BigDecimal.ZERO) > 0) {
                     printLog("Selling on: ", signal.getDate(), results.buys);
 
                     results.totalTrades++;
@@ -328,15 +323,22 @@ public class BacktestMainServiceImpl
             } else if (signal.getAction() == Action.STRONGBUY) {
                 results.totalTrades++;
                 if (results.buys.size() > 0 && results.buys.peekLast().compareTo(BigDecimal.ZERO) < 0) {
+                    printLog("Closing short position: ", signal.getDate(), signal.getClose());
+
                     BigDecimal holding = results.buys.removeLast();
                     BigDecimal profit = holding.add(signal.getClose());
+                    printLog("Holding: ", null, holding);
+
+                    printLog("Profit: ", null, profit);
 
                     results.invested = results.invested.add(holding.multiply(new BigDecimal(-1)));
-                    results.total = results.total.add(profit);
+                    results.total = results.total.add(profit.multiply(new BigDecimal(-1)));
 
                     Order o = new Order(s, 1, signal.getClose(), Order.Side.buy, signal.getDate());
                     results.orderHistory.add(o);
                 } else {
+                    printLog("Opening Long position: ", signal.getDate(), results.buys);
+
                     results.buys.add(signal.getClose());
                     Order o = new Order(s, 1, signal.getClose(), Order.Side.buy, signal.getDate());
                     results.orderHistory.add(o);
@@ -430,7 +432,6 @@ public class BacktestMainServiceImpl
         int period = 14;
         int bbandPeriod = 80;
         List<Signal> signals = new ArrayList<>();
-        log.info("Quotes: {}", quotes.size());
         for (int i = 0; i < quotes.size(); i++) {
             if (i > bbandPeriod) {
                 List<Quote> sublist = quotes.subList(i - 14, i + 1);
