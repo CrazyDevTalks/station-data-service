@@ -82,7 +82,6 @@ public class BacktestMainServiceImpl
             summary.recommendation = lastSignal.getAction();
             summary.algo = "BBands";
         }
-
         return summary;
     }
 
@@ -630,6 +629,8 @@ public class BacktestMainServiceImpl
             summary.lastPrice = lastSignal.getClose();
             summary.lastVolume = lastSignal.getVolume();
             summary.recommendation = lastSignal.getAction();
+            summary.upperResistance = lastSignal.upperResistance;
+            summary.lowerResistance = lastSignal.lowerResistance;
             summary.algo = "FindResistance";
             summary.signals = signals;
         }
