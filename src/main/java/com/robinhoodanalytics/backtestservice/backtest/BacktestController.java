@@ -35,7 +35,7 @@ public class BacktestController {
     private BacktestMainService _backtestMainService;
 
     @Autowired
-    private TrainerService _trainService;
+    private TrainerService _trainerService;
 
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
@@ -93,7 +93,7 @@ public class BacktestController {
                                       @RequestParam boolean save)
     {
         try {
-            return _trainService.train(symbol, from, to, save);
+            return _trainerService.train(symbol, from, to, save);
         } catch (RestClientException e) {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }
@@ -109,7 +109,7 @@ public class BacktestController {
             LocalDate from = LocalDate.parse((String) payload.get("from"), formatter);
             LocalDate to = LocalDate.parse((String) payload.get("to"), formatter);
 
-            return _trainService.findTrainingData((String) payload.get("symbol"), from, to, (Boolean) payload.get("save"));
+            return _trainerService.findTrainingData((String) payload.get("symbol"), from, to, (Boolean) payload.get("save"));
         } catch (RestClientException e) {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }
@@ -195,7 +195,7 @@ public class BacktestController {
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(MediaType.APPLICATION_JSON);
 
-        _trainService.trainHmmModel();
+        _trainerService.trainHmmModel();
 
         return new ResponseEntity<>(null, responseHeaders, HttpStatus.OK);
     }
