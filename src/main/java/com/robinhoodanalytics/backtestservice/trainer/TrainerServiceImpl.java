@@ -46,11 +46,11 @@ public class TrainerServiceImpl implements TrainerService {
     }
 
     @Override
-    public AggregatedQuote[] convertTrainingData(String symbol, Date from, Date to) {
+    public AggregatedQuote[] convertTrainingData(String symbol, Date from, Date to, boolean outputClosePrice) {
         List<Quote> quotes = this.sanitizeQuotes(symbol, from, to);
 
         if (quotes != null) {
-            AggregatedQuote[] items = aggregateQuotes(quotes);
+            AggregatedQuote[] items = aggregateQuotes(quotes, outputClosePrice);
 
             return items;
         }
@@ -58,12 +58,12 @@ public class TrainerServiceImpl implements TrainerService {
     }
 
     @Override
-    public ResponseEntity train(String symbol, Date from, Date to, boolean save) {
+    public ResponseEntity train(String symbol, Date from, Date to, boolean save, boolean outputClosePrice) {
         try {
             HttpHeaders responseHeaders = new HttpHeaders();
             responseHeaders.setContentType(MediaType.APPLICATION_JSON);
 
-            AggregatedQuote[] items = this.convertTrainingData(symbol, from, to);
+            AggregatedQuote[] items = this.convertTrainingData(symbol, from, to, outputClosePrice);
 
             if (items != null) {
                 if (save) {
@@ -93,7 +93,7 @@ public class TrainerServiceImpl implements TrainerService {
             List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, searchStartDate, toDate);
 
             if (quotes != null) {
-                AggregatedQuote[] items = aggregateQuotes(quotes);
+                AggregatedQuote[] items = aggregateQuotes(quotes, false);
 
                 List<List<AggregatedQuote>> matchingHistorical = new ArrayList<>();
                 if (items.length > 0) {
@@ -169,7 +169,7 @@ public class TrainerServiceImpl implements TrainerService {
         }
     }
 
-    private AggregatedQuote[] aggregateQuotes(List<Quote> quotes) {
+    private AggregatedQuote[] aggregateQuotes(List<Quote> quotes, boolean outputClosePrice) {
         AggregatedQuote[] items = new AggregatedQuote[quotes.size() - 1];
         Deque<Quote> window = new ArrayDeque<>();
         long avgVolume = 0;
@@ -204,7 +204,10 @@ public class TrainerServiceImpl implements TrainerService {
                 double lowBinary = normalizePriceToBinary(previousQ.getLow(), q.getLow());
 
                 double[] input = {volChange, openBinary, closeBinary, highBinary, lowBinary};
-                double[] previousOutput = {closeBinary};
+                double[] previousOutput = {openBinary};
+                if (outputClosePrice) {
+                    previousOutput[0] = closeBinary;
+                }
 
                 int prevCtr = ctr - 1;
                 if (prevCtr >= 0 && items[prevCtr] != null) {

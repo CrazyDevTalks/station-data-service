@@ -49,7 +49,7 @@ public class BacktestMainServiceImpl
 
     @Override
     public PrecogBacktestResults[] backtestRnn(String symbol, Date from, Date to) {
-        AggregatedQuote[] baseline = _trainerService.convertTrainingData(symbol, from, to);
+        AggregatedQuote[] baseline = _trainerService.convertTrainingData(symbol, from, to, false);
 //        List<Quote> uproQuotes = _trainerService.sanitizeQuotes(symbol, from, to);
 //        List<Quote> spxuQuotes = _trainerService.sanitizeQuotes(symbol, from, to);
 
