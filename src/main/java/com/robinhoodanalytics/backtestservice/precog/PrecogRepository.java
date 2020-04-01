@@ -8,6 +8,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface PrecogRepository extends MongoRepository<Predictions, String>{
-    @Query(value = "{ 'symbol' : ?0, 'date' : ?1}")
-    List<Predictions> findBySymbolAndDate(String symbol, LocalDateTime from);
+    @Query(value = "{ 'symbol' : ?0, 'modelName' : ?1, 'date' : ?2}")
+    List<Predictions> findBySymbolAndModelNameAndDate(String symbol, String modelName, LocalDateTime from);
 }

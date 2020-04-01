@@ -44,10 +44,10 @@ public class PrecogServiceImpl implements PrecogService{
     }
 
     @Override
-    public ResponseEntity findPrediction(String symbol, LocalDateTime datetime) {
+    public ResponseEntity findPrediction(String symbol, String modelName, LocalDateTime datetime) {
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(MediaType.APPLICATION_JSON);
-        List<Predictions> predictions = precogRepo.findBySymbolAndDate(symbol, datetime);
+        List<Predictions> predictions = precogRepo.findBySymbolAndModelNameAndDate(symbol, modelName, datetime);
         if (predictions.size() > 0) {
             return new ResponseEntity<>(predictions, responseHeaders, HttpStatus.OK);
         } else {
