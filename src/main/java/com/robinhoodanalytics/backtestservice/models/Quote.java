@@ -34,7 +34,7 @@ public class Quote {
 
     private long volume;
 
-    private int impliedMovement;
+    private double impliedMovement;
 
     public Quote() {}
 
@@ -88,11 +88,11 @@ public class Quote {
         this.date = date;
     }
 
-    public long getImpliedMovement() {
+    public double getImpliedMovement() {
         return impliedMovement;
     }
 
-    public void setImpliedMovement(int impliedMovement) {
+    public void setImpliedMovement(double impliedMovement) {
         this.impliedMovement = impliedMovement;
     }
 

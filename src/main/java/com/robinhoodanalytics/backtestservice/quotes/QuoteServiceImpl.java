@@ -75,7 +75,7 @@ public class QuoteServiceImpl
     }
 
     @Override
-    public ResponseEntity updateQuoteImpliedMove(String symbol, int impliedMove)
+    public ResponseEntity updateQuoteImpliedMove(String symbol, double impliedMove)
             throws RestClientException
     {
         HttpHeaders responseHeaders = new HttpHeaders();
