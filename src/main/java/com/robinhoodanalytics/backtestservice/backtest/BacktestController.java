@@ -59,6 +59,17 @@ public class BacktestController {
         }
     }
 
+    @RequestMapping(value = "/update-implied-move", method = RequestMethod.POST)
+    ResponseEntity updateQuote(@RequestBody Map<String, Object> payload)
+    {
+        try {
+            return _quoteService.updateQuoteImpliedMove((String) payload.get("symbol"), (Integer) payload.get("impliedMove"));
+        } catch (RestClientException e) {
+            return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
+        }
+    }
+
+
     @RequestMapping(value = "/add/intradaydata", method = RequestMethod.POST)
     ResponseEntity addIntradayData(@RequestBody List<IntradayQuote> payload)
     {
