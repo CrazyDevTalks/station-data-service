@@ -126,11 +126,12 @@ public class QuoteServiceImpl
             return quotes;
         }
         else {
-            Date lastQuoteDate = quotes.get(quotes.size() - 1).getDate();
+            if (quotes.size() > 0 &&
+                    DateParser.compareTradeDays(start, quotes.get(0).getDate()) >= 0 && // First quote on or before expected date
+                    DateParser.compareTradeDays(DateParser.toTradeDay(end, 0, false),
+                        quotes.get(quotes.size() - 1).getDate()) > 0) { // Last quote is before the expected end date
+                Date lastQuoteDate = quotes.get(quotes.size() - 1).getDate();
 
-            if (DateParser.compareTradeDays(start, quotes.get(0).getDate()) >= 0 && // First quote on or before expected date
-                DateParser.compareTradeDays(DateParser.toTradeDay(end, 0, false),
-                        lastQuoteDate) > 0) { // Last quote is before the expected end date
                 long requestedTimeRange = Math.abs(from.getTime() - lastQuoteDate.getTime());
                 List<Quote> requestedQuotes = this.getQuoteByRange(symbol, requestedTimeRange);
 
