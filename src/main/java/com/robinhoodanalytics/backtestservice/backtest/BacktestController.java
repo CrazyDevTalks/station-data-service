@@ -35,7 +35,7 @@ public class BacktestController {
     private BacktestMainService _backtestMainService;
 
     @Autowired
-    private TrainerService _trainService;
+    private TrainerService _trainerService;
 
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
 
@@ -58,6 +58,17 @@ public class BacktestController {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }
     }
+
+    @RequestMapping(value = "/update-implied-move", method = RequestMethod.POST)
+    ResponseEntity updateQuote(@RequestBody Map<String, Object> payload)
+    {
+        try {
+            return _quoteService.updateQuoteImpliedMove((String) payload.get("symbol"), (Integer) payload.get("impliedMove"));
+        } catch (RestClientException e) {
+            return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
+        }
+    }
+
 
     @RequestMapping(value = "/add/intradaydata", method = RequestMethod.POST)
     ResponseEntity addIntradayData(@RequestBody List<IntradayQuote> payload)
@@ -90,10 +101,11 @@ public class BacktestController {
     ResponseEntity<List<Quote>> train(@RequestParam(value = "ticker") String symbol,
                                       @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
                                       @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to,
-                                      @RequestParam boolean save)
+                                      @RequestParam boolean save,
+                                      @RequestParam boolean useClosePrice)
     {
         try {
-            return _trainService.train(symbol, from, to, save);
+            return _trainerService.train(symbol, from, to, save, useClosePrice);
         } catch (RestClientException e) {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }
@@ -109,7 +121,7 @@ public class BacktestController {
             LocalDate from = LocalDate.parse((String) payload.get("from"), formatter);
             LocalDate to = LocalDate.parse((String) payload.get("to"), formatter);
 
-            return _trainService.findTrainingData((String) payload.get("symbol"), from, to, (Boolean) payload.get("save"));
+            return _trainerService.findTrainingData((String) payload.get("symbol"), from, to, (Boolean) payload.get("save"));
         } catch (RestClientException e) {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }
@@ -142,12 +154,11 @@ public class BacktestController {
                                                                         @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to,
                                                                         @RequestParam(value = "d", required = false) BigDecimal deviation,
                                                                         @RequestParam("s") int shortTerm,
-                                                                        @RequestParam("l") int longTerm,
-                                                                        @RequestParam("p") int bbandPeriod
+                                                                        @RequestParam("l") int longTerm
     ) {
 
         try {
-            return ResponseEntity.ok(_backtestMainService.getMeanReversionResults(symbol, from, to, deviation, shortTerm, longTerm, bbandPeriod));
+            return ResponseEntity.ok(_backtestMainService.getMeanReversionResults(symbol, from, to, deviation, shortTerm, longTerm));
         } catch (Exception e) {
             log.error("Error: ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
@@ -162,13 +173,11 @@ public class BacktestController {
                                              @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date from,
                                              @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date to,
                                              @RequestParam("s") int shortTerm,
-                                             @RequestParam("l") int longTerm,
-                                             @RequestParam("p") int bbandPeriod
-
+                                             @RequestParam("l") int longTerm
     ) {
 
         try {
-            return ResponseEntity.ok(_backtestMainService.getMeanReversionTimeline(symbol, from, to, shortTerm, longTerm, bbandPeriod));
+            return ResponseEntity.ok(_backtestMainService.getMeanReversionTimeline(symbol, from, to, shortTerm, longTerm));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e);
         }
@@ -198,7 +207,7 @@ public class BacktestController {
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(MediaType.APPLICATION_JSON);
 
-        _trainService.trainHmmModel();
+        _trainerService.trainHmmModel();
 
         return new ResponseEntity<>(null, responseHeaders, HttpStatus.OK);
     }

@@ -34,6 +34,8 @@ public class Quote {
 
     private long volume;
 
+    private int impliedMovement;
+
     public Quote() {}
 
     public Quote(String symbol) {
@@ -48,6 +50,10 @@ public class Quote {
         this.low = low;
         this.high = high;
         this.volume = volume;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public String getSymbol() {
@@ -80,6 +86,14 @@ public class Quote {
 
     public void setDate(Date date) {
         this.date = date;
+    }
+
+    public long getImpliedMovement() {
+        return impliedMovement;
+    }
+
+    public void setImpliedMovement(int impliedMovement) {
+        this.impliedMovement = impliedMovement;
     }
 
     @Override

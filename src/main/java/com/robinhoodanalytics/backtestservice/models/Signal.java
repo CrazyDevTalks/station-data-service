@@ -1,11 +1,23 @@
 package com.robinhoodanalytics.backtestservice.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.math.BigDecimal;
 import java.util.Date;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
+@Document(collection = "signals")
 public class Signal {
+
+    @Id
+    String id;
+
+    @Indexed
+    public String symbol;
 
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private Date date;
@@ -24,7 +36,21 @@ public class Signal {
 
     private long volume;
 
+    public String bbandPosition;
+
+    public double mfi;
+
+    public BigDecimal oneWeekGain;
+
     public BigDecimal oneMonthGain;
+
+    public int shortTermSize;
+
+    public int longTermSize;
+
+    public BigDecimal upperResistance;
+
+    public BigDecimal lowerResistance;
 
     public Signal(Date date, Action action, BigDecimal deviation,
                   BigDecimal shortTermAverage, BigDecimal longTermAverage,
@@ -39,12 +65,28 @@ public class Signal {
         this.volume = volume;
     }
 
+    public Signal(Date date, Action action) {
+        this.date = date;
+        this.action = action;
+    }
+
     public Signal(Date date, Action action, BigDecimal close, long volume) {
         this.date = date;
         this.action = action;
         this.close = close;
         this.volume = volume;
     }
+
+    public Signal(Date date, Action action, BigDecimal close, long volume,
+                  String bbandPosition, double mfi) {
+        this.date = date;
+        this.action = action;
+        this.close = close;
+        this.volume = volume;
+        this.bbandPosition = bbandPosition;
+        this.mfi = mfi;
+    }
+
 
     public Signal() {
     }
@@ -100,4 +142,6 @@ public class Signal {
     public BigDecimal getVolumeChange() { return volumeChange; }
 
     public long getVolume() { return volume; }
- }
+
+    public void setVolume(long volume) {  this.volume = volume; }
+}

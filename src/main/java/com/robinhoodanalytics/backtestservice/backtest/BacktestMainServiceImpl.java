@@ -5,23 +5,15 @@ import com.robinhoodanalytics.backtestservice.backtest.models.PrecogBacktestResu
 import com.robinhoodanalytics.backtestservice.models.*;
 import com.robinhoodanalytics.backtestservice.precog.PrecogService;
 import com.robinhoodanalytics.backtestservice.quotes.QuoteService;
-import com.robinhoodanalytics.backtestservice.strategy.BbandMfi;
-import com.robinhoodanalytics.backtestservice.strategy.BuyAndHold;
-import com.robinhoodanalytics.backtestservice.strategy.MfiPayload;
-import com.robinhoodanalytics.backtestservice.strategy.MoneyFlowIndex;
+import com.robinhoodanalytics.backtestservice.strategy.*;
 import com.robinhoodanalytics.backtestservice.trainer.TrainerService;
-import com.robinhoodanalytics.backtestservice.utils.DateParser;
 import com.robinhoodanalytics.backtestservice.utils.RollingAverage;
 import com.robinhoodanalytics.backtestservice.utils.Statistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BaseBar;
 import org.ta4j.core.BaseTimeSeries;
@@ -57,7 +49,7 @@ public class BacktestMainServiceImpl
 
     @Override
     public PrecogBacktestResults[] backtestRnn(String symbol, Date from, Date to) {
-        AggregatedQuote[] baseline = _trainerService.convertTrainingData(symbol, from, to);
+        AggregatedQuote[] baseline = _trainerService.convertTrainingData(symbol, from, to, false);
 //        List<Quote> uproQuotes = _trainerService.sanitizeQuotes(symbol, from, to);
 //        List<Quote> spxuQuotes = _trainerService.sanitizeQuotes(symbol, from, to);
 
@@ -72,15 +64,15 @@ public class BacktestMainServiceImpl
     }
 
     @Override
-    public List<Signal> getMeanReversionTimeline(String symbol, Date from, Date to, int shortTerm, int longTerm, int bbandPeriod)
+    public List<Signal> getMeanReversionTimeline(String symbol, Date from, Date to, int shortTerm, int longTerm)
             throws Exception {
-        return trainMeanReversion(symbol, from, to, shortTerm, longTerm, bbandPeriod);
+        return trainMeanReversion(symbol, from, to, shortTerm, longTerm);
     }
 
     @Override
-    public BacktestSummary getMeanReversionResults(String symbol, Date from, Date to, BigDecimal deviation, int shortTerm, int longTerm, int bbandPeriod)
+    public BacktestSummary getMeanReversionResults(String symbol, Date from, Date to, BigDecimal deviation, int shortTerm, int longTerm)
             throws Exception {
-        List<Signal> signals = trainMeanReversion(symbol, from, to, shortTerm, longTerm, bbandPeriod);
+        List<Signal> signals = trainMeanReversion(symbol, from, to, shortTerm, longTerm);
         BacktestSummary summary = calculateReturns(signals);
 
         if (signals.size() > 0) {
@@ -90,7 +82,6 @@ public class BacktestMainServiceImpl
             summary.recommendation = lastSignal.getAction();
             summary.algo = "BBands";
         }
-
         return summary;
     }
 
@@ -118,8 +109,7 @@ public class BacktestMainServiceImpl
                                             Date from,
                                             Date to,
                                             int shortTermWindow,
-                                            int longTermWindow,
-                                            int bbandPeriod) throws Exception {
+                                            int longTermWindow) throws Exception {
         List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, from, to);
 
         RollingAverage shortTerm = new RollingAverage(shortTermWindow);
@@ -151,30 +141,31 @@ public class BacktestMainServiceImpl
                 BigDecimal longAvg = BigDecimal.ONE;
 
                 BigDecimal pctChange = BigDecimal.ONE;
-                BigDecimal volumeChange = Statistics.percentChange(volumeWindow.getAverage(), new BigDecimal(quote.getVolume()));
+                BigDecimal volumeChange = Statistics.percentChange(volumeWindow.getAverage(),
+                        new BigDecimal(quote.getVolume()));
 
                 recentVolumeChanges = addToQueue(volumeChange, recentVolumeChanges, 10);
 
                 recentPrices = addToQueue(quote.getClose(), recentPrices, 10);
 
-                Action action = getDecision(quote, shortAvg, longAvg, recentVolumeChanges, recentPrices, bars);
+                Action action = getDecision(quote, recentVolumeChanges,
+                        recentPrices, bars);
 
-                Signal sig = new Signal(quote.getDate(), action,
-                        pctChange, shortAvg, longAvg, volumeChange, quote.getClose(), quote.getVolume());
+                Signal sig = new Signal(quote.getDate(), action, pctChange,
+                        shortAvg, longAvg, volumeChange,
+                        quote.getClose(), quote.getVolume());
                 results.add(sig);
             }
         }
         return results;
     }
 
-    private Action getDecision(Quote quote, BigDecimal avg30, BigDecimal avg90,
-                               Deque<BigDecimal> volumeChanges, Deque<BigDecimal> prices, List<Bar> bars) {
-        return getMeanReversionDirection(quote, avg30, avg90,
-                volumeChanges, prices, bars);
+    private Action getDecision(Quote quote, Deque<BigDecimal> volumeChanges,
+                               Deque<BigDecimal> prices, List<Bar> bars) {
+        return getMeanReversionDirection(quote, volumeChanges, prices, bars);
     }
 
-    private Action getMeanReversionDirection(Quote quote, BigDecimal avg30, BigDecimal avg90,
-                                             Deque<BigDecimal> volumeChanges, Deque<BigDecimal> prices, List<Bar> bars) {
+    private Action getMeanReversionDirection(Quote quote, Deque<BigDecimal> volumeChanges, Deque<BigDecimal> prices, List<Bar> bars) {
         Action recommendation = Action.INDETERMINANT;
         BigDecimal lastPrice = quote.getClose();
         BigDecimal previousPrice = null;
@@ -285,20 +276,7 @@ public class BacktestMainServiceImpl
         return recommendation;
     }
 
-    // BUY on Friday. SELL on Monday.
-    private Action testDecisionAlgo(Quote quote, BigDecimal avg30, BigDecimal avg90,
-                                    Deque<BigDecimal> volumeChanges, Deque<BigDecimal> prices) {
-        Action recommendation = Action.INDETERMINANT;
-        if (DateParser.getDayOfWeek(quote.getDate()) == Calendar.FRIDAY) {
-            recommendation = Action.BUY;
-        } else if (DateParser.getDayOfWeek(quote.getDate()) == Calendar.MONDAY) {
-            recommendation = Action.SELL;
-        }
-
-        return recommendation;
-    }
-
-    private Deque<BigDecimal> addToQueue(BigDecimal value, Deque<BigDecimal> queue, int maxSize) throws Exception {
+    private Deque<BigDecimal> addToQueue(BigDecimal value, Deque<BigDecimal> queue, int maxSize) {
         if (value == null) {
             log.error("Found null value");
             return queue;
@@ -320,7 +298,7 @@ public class BacktestMainServiceImpl
 
         for (Signal signal : signals) {
             if (signal.getAction() == Action.STRONGSELL) {
-                if (results.buys.size() > 0) {
+                if (results.buys.size() > 0 && results.buys.peekFirst().compareTo(BigDecimal.ZERO) > 0) {
                     printLog("Selling on: ", signal.getDate(), results.buys);
 
                     results.totalTrades++;
@@ -333,12 +311,37 @@ public class BacktestMainServiceImpl
                     printLog("@ ", null, signal.getClose());
                     Order o = new Order(s, 1, signal.getClose(), Order.Side.sell, signal.getDate());
                     results.orderHistory.add(o);
+                } else {
+                    printLog("Shorting on: ", signal.getDate(), results.buys);
+
+                    results.totalTrades++;
+                    results.buys.add(signal.getClose().multiply(new BigDecimal(-1)));
+                    Order o = new Order(s, 1, signal.getClose().multiply(new BigDecimal(-1)), Order.Side.sell, signal.getDate());
+                    results.orderHistory.add(o);
                 }
             } else if (signal.getAction() == Action.STRONGBUY) {
                 results.totalTrades++;
-                results.buys.add(signal.getClose());
-                Order o = new Order(s, 1, signal.getClose(), Order.Side.buy, signal.getDate());
-                results.orderHistory.add(o);
+                if (results.buys.size() > 0 && results.buys.peekLast().compareTo(BigDecimal.ZERO) < 0) {
+                    printLog("Closing short position: ", signal.getDate(), signal.getClose());
+
+                    BigDecimal holding = results.buys.removeLast();
+                    BigDecimal profit = holding.add(signal.getClose());
+                    printLog("Holding: ", null, holding);
+
+                    printLog("Profit: ", null, profit);
+
+                    results.invested = results.invested.add(holding.multiply(new BigDecimal(-1)));
+                    results.total = results.total.add(profit.multiply(new BigDecimal(-1)));
+
+                    Order o = new Order(s, 1, signal.getClose(), Order.Side.buy, signal.getDate());
+                    results.orderHistory.add(o);
+                } else {
+                    printLog("Opening Long position: ", signal.getDate(), results.buys);
+
+                    results.buys.add(signal.getClose());
+                    Order o = new Order(s, 1, signal.getClose(), Order.Side.buy, signal.getDate());
+                    results.orderHistory.add(o);
+                }
             }
         }
 
@@ -380,18 +383,30 @@ public class BacktestMainServiceImpl
     public BacktestSummary backtestStrategy(String symbol, String strategy, Date from, Date to, double[] settings)
         throws Exception {
         if (strategy == "BollingerBand") {
-            return this.getMeanReversionResults(symbol, from, to, new BigDecimal(settings[0], MathContext.DECIMAL64), (int) settings[1], (int) settings[2], (int) settings[3]);
+            return getMeanReversionResults(symbol, from, to, new BigDecimal(settings[0], MathContext.DECIMAL64), (int) settings[1], (int) settings[2]);
         }
 
         List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, from, to);
 
         switch(strategy.toUpperCase()) {
             case "MONEYFLOWINDEX":
-                return this.runMoneyFlowIndexBacktest(quotes);
+                return runMoneyFlowIndexBacktest(quotes);
             case "BBMFI":
-                return this.runBbandMoneyFlowIndexBacktest(quotes);
+                return runBbandMoneyFlowIndexBacktest(quotes);
+            case "MOVINGAVERAGECROSSOVER":
+                return runMovingAverageCrossOver(quotes, new BigDecimal(settings[0], MathContext.DECIMAL64),
+                        (int) settings[1], (int) settings[2]);
+            case "FINDRESISTANCE":
+                return runFindResistance(quotes);
         }
 
+        return null;
+    }
+
+    @Override
+    public ResponseEntity trainSignals(String symbol, String strategy, Date from, Date to) {
+        List<Quote> quotes = _quoteService.getHistoricalQuotes(symbol, from, to);
+        List<Signal> signals = getBbandMfiSignals(quotes);
         return null;
     }
 
@@ -416,9 +431,8 @@ public class BacktestMainServiceImpl
         int period = 14;
         int bbandPeriod = 80;
         List<Signal> signals = new ArrayList<>();
-
-        for (int i = 0; i< quotes.size(); i++) {
-            if (i > 80) {
+        for (int i = 0; i < quotes.size(); i++) {
+            if (i > bbandPeriod) {
                 List<Quote> sublist = quotes.subList(i - 14, i + 1);
                 MfiPayload payload = this.createList(sublist, period);
                 MfiPayload bbList = this.createList(quotes.subList(i - bbandPeriod, i + 1), bbandPeriod);
@@ -431,31 +445,48 @@ public class BacktestMainServiceImpl
                 bb.bbandPeriod = bbandPeriod;
                 bb.bbandClose = bbList.close;
                 Signal technicalSignal = bb.onTick(sublist.get(sublist.size() - 1).getDate());
+
+                technicalSignal = this.setOneMonthGain(quotes, i + 20, technicalSignal);
+                technicalSignal = this.setOneWeekGain(quotes, i + 5, technicalSignal);
                 signals.add(technicalSignal);
-                if (technicalSignal != null) {
-
-                    int oneMonthIdx = i + 20;
-                    if (oneMonthIdx < quotes.size()) {
-                        BigDecimal latterClose = new BigDecimal(String.valueOf(quotes.get(oneMonthIdx).getClose()));
-                        BigDecimal diff = latterClose.subtract(technicalSignal.getClose());
-                        diff = diff.divide(technicalSignal.getClose(), RoundingMode.HALF_UP);
-
-                        if (technicalSignal.getAction() == Action.SELL || technicalSignal.getAction() == Action.STRONGSELL) {
-                            diff = diff.multiply(new BigDecimal(-1));
-                        }
-
-                        if (technicalSignal.oneMonthGain != null) {
-                            technicalSignal.oneMonthGain.add(diff);
-                        } else {
-                            technicalSignal.oneMonthGain = diff;
-                        }
-                    }
-                }
             }
         }
 
         return signals;
     }
+
+    private Signal setOneMonthGain(List<Quote> quotes, int oneMonthIdx, Signal currentSignal) {
+        if (oneMonthIdx < quotes.size()) {
+            BigDecimal futureClose = quotes.get(oneMonthIdx).getClose();
+            BigDecimal currentClose = currentSignal.getClose();
+            BigDecimal diff = futureClose.subtract(currentClose);
+            diff = diff.divide(currentClose, RoundingMode.HALF_UP);
+
+            if (currentSignal.getAction() == Action.SELL || currentSignal.getAction() == Action.STRONGSELL) {
+                diff = diff.multiply(new BigDecimal(-1));
+            }
+
+            currentSignal.oneMonthGain = diff;
+        }
+        return currentSignal;
+    }
+
+    private Signal setOneWeekGain(List<Quote> quotes, int oneWeekIdx, Signal currentSignal) {
+        if (oneWeekIdx < quotes.size()) {
+            BigDecimal futureClose = quotes.get(oneWeekIdx).getClose();
+            BigDecimal currentClose = currentSignal.getClose();
+            BigDecimal diff = futureClose.subtract(currentClose);
+            diff = diff.divide(currentClose, RoundingMode.HALF_UP);
+
+            if (currentSignal.getAction() == Action.SELL || currentSignal.getAction() == Action.STRONGSELL) {
+                diff = diff.multiply(new BigDecimal(-1));
+            }
+
+            currentSignal.oneWeekGain = diff;
+        }
+        return currentSignal;
+    }
+
 
     private BacktestSummary runMoneyFlowIndexBacktest(List<Quote> quotes) {
         List<Signal> signals = this.getMfiSignals(quotes);
@@ -529,6 +560,103 @@ public class BacktestMainServiceImpl
 
         return new MfiPayload(high, low, close, volume, period);
     }
+
+    private List<Signal> getMACrossoverSignals(List<Quote> quotes,
+                                               BigDecimal deviation,
+                                               int shortTermSize,
+                                               int longTermSize) {
+        MovingAverageCrossover ma = new MovingAverageCrossover();
+
+        ma.shortTermWindow = new RollingAverage(shortTermSize);
+        ma.longTermWindow = new RollingAverage(longTermSize);
+
+        List<Signal> signals = new ArrayList<>();
+        Deque<BigDecimal> shortTermAvg = new ArrayDeque<>();
+
+        for (int i = 0; i < quotes.size(); i++) {
+            Quote quote = quotes.get(i);
+            if (quote.getClose() == null) {
+                log.error("Closing price missing: {}", quote.toString());
+            } else {
+                ma.shortTermWindow.add(quote.getClose());
+                ma.longTermWindow.add(quote.getClose());
+                ma.shortTermAverageHistory = shortTermAvg;
+
+                Signal technicalSignal = ma.onTick(quote.getDate());
+
+                technicalSignal.shortTermSize = shortTermSize;
+                technicalSignal.longTermSize = longTermSize;
+
+                signals.add(addSignalData(i, quote, quotes, technicalSignal));
+
+                shortTermAvg = addToQueue(ma.shortTermWindow.getAverage(), shortTermAvg, 5);
+            }
+        }
+
+        return signals;
+    }
+
+    private Signal addSignalData(int index, Quote quote, List<Quote> quotes, Signal signal) {
+        signal.setClose(quote.getClose());
+        signal.setVolume(quote.getVolume());
+        signal = setOneMonthGain(quotes, index + 20, signal);
+        signal = setOneWeekGain(quotes, index + 5, signal);
+        return signal;
+    }
+
+    private BacktestSummary runMovingAverageCrossOver(List<Quote> quotes, BigDecimal deviation, int shortTerm, int longTerm) {
+        List<Signal> signals = getMACrossoverSignals(quotes, deviation, shortTerm, longTerm);
+        BacktestSummary summary = calculateReturns(signals);
+
+        if (signals.size() > 0) {
+            Signal lastSignal = signals.get(signals.size() - 1);
+            summary.lastPrice = lastSignal.getClose();
+            summary.lastVolume = lastSignal.getVolume();
+            summary.recommendation = lastSignal.getAction();
+            summary.algo = "MovingAverageCrossOver";
+            summary.signals = signals;
+        }
+
+        return summary;
+    }
+
+    private BacktestSummary runFindResistance(List<Quote> quotes) {
+        List<Signal> signals = this.getResistanceSignals(quotes);
+        BacktestSummary summary = calculateReturns(signals);
+
+        if (signals.size() > 0) {
+            Signal lastSignal = signals.get(signals.size() - 1);
+            summary.lastPrice = lastSignal.getClose();
+            summary.lastVolume = lastSignal.getVolume();
+            summary.recommendation = lastSignal.getAction();
+            summary.upperResistance = lastSignal.upperResistance;
+            summary.lowerResistance = lastSignal.lowerResistance;
+            summary.algo = "FindResistance";
+            summary.signals = signals;
+        }
+
+        return summary;
+    }
+
+    private List<Signal> getResistanceSignals(List<Quote> quotes) {
+        List<Signal> signals = new ArrayList<>();
+
+        int windowSize = 20;
+        FindResistance eq = new FindResistance(quotes, windowSize,
+                4, 300);
+
+        for (int i = 0; i < quotes.size(); i++) {
+            Quote quote = quotes.get(i);
+            eq.setParameters(quote, i);
+
+            Signal technicalSignal = eq.onTick(quote.getDate());
+
+            signals.add(this.addSignalData(i, quote, quotes, technicalSignal));
+        }
+        return signals;
+    }
+
+
 
     private void printLog(String title, Date d, Object o) {
         if(logOn) {

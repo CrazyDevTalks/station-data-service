@@ -18,7 +18,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-public class BbandMfi implements Strategy{
+public class BbandMfi implements Strategy {
     private static final Logger log = LoggerFactory.getLogger(BacktestServiceApplication.class);
     public double[] high;
     public double[] low;
@@ -46,13 +46,20 @@ public class BbandMfi implements Strategy{
         BollingerBand bands = this.getBollingerBand(this.bbandClose);
 
         if (closePrice.compareTo(bands.lower) < 0 && mfiResponse.getBody().get(0).get(0).doubleValue() < 15) {
-            return new Signal(date, Action.STRONGBUY, closePrice, volume[volume.length - 1]);
+            return new Signal(date, Action.STRONGBUY, closePrice, volume[volume.length - 1], "LessThanLowerBand", mfiResponse.getBody().get(0).get(0).doubleValue());
         }
 
         if (closePrice.compareTo(bands.upper) > 0 && mfiResponse.getBody().get(0).get(0).doubleValue() > 30) {
-            return new Signal(date, Action.STRONGSELL, closePrice, volume[volume.length - 1]);
+            return new Signal(date, Action.STRONGSELL, closePrice, volume[volume.length - 1], "GreaterThanUpper", mfiResponse.getBody().get(0).get(0).doubleValue());
         }
-        return new Signal(date, Action.INDETERMINANT, closePrice, volume[volume.length - 1]);
+
+        String bbandDesc = "";
+        if (closePrice.compareTo(bands.mid) > 0 && closePrice.compareTo(bands.upper) < 0 ) {
+            bbandDesc = "MidUpper";
+        } else if (closePrice.compareTo(bands.mid) < 0 && closePrice.compareTo(bands.lower) > 0 ) {
+            bbandDesc = "MidLower";
+        }
+        return new Signal(date, Action.INDETERMINANT, closePrice, volume[volume.length - 1], bbandDesc, mfiResponse.getBody().get(0).get(0).doubleValue());
     }
 
     private List<List<BigDecimal>> requestBBand(double[] real, int period) {

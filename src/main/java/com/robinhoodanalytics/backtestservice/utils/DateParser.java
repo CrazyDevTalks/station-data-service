@@ -4,7 +4,7 @@ import java.util.Calendar;
 import java.util.Date;
 
 public class DateParser {
-    public static Date toTradeDay(Date date, int modifier) {
+    public static Date toTradeDay(Date date, int modifier, boolean roundUp) {
         Calendar cal = Calendar.getInstance();
         cal.setTime(date);
         cal.set(Calendar.MINUTE, 0);
@@ -13,11 +13,22 @@ public class DateParser {
         cal.set(Calendar.HOUR_OF_DAY, 0);
         cal.add(Calendar.HOUR_OF_DAY, modifier);
 
+        int addDay = 0;
         if ((cal.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY)) {
-            cal.add(Calendar.DATE, -1);
+            if (roundUp) {
+                addDay = 2;
+            } else {
+                addDay = -1;
+            }
         } else if ((cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY)){
-            cal.add(Calendar.DATE, -2);
+            if (roundUp) {
+                addDay = 1;
+            } else {
+                addDay = -2;
+            }
         }
+
+        cal.add(Calendar.DATE, addDay);
         return cal.getTime();
     }
 

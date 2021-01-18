@@ -8,5 +8,5 @@ import java.time.LocalDateTime;
 public interface PrecogService {
     ResponseEntity<int[]> retrievePrediction(double[] input);
     ResponseEntity savePrediction(Predictions payload);
-    ResponseEntity findPrediction(String symbol, LocalDateTime datetime);
+    ResponseEntity findPrediction(String symbol, String modelName, LocalDateTime datetime);
 }

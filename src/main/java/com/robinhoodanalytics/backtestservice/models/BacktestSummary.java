@@ -28,5 +28,7 @@ public class BacktestSummary {
     public Date startDate;
     public Date endDate;
     public List<Signal> signals;
+    public BigDecimal upperResistance;
+    public BigDecimal lowerResistance;
 }
 

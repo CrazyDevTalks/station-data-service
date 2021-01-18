@@ -10,8 +10,8 @@ import java.util.List;
 
 public interface TrainerService {
     List<Quote> sanitizeQuotes(String symbol, Date from, Date to);
-    AggregatedQuote[] convertTrainingData(String symbol, Date from, Date to);
-    ResponseEntity train(String symbol, Date from, Date to, boolean save);
+    AggregatedQuote[] convertTrainingData(String symbol, Date from, Date to, boolean outputClosePrice);
+    ResponseEntity train(String symbol, Date from, Date to, boolean save, boolean outputClosePrice);
     ResponseEntity findTrainingData(String symbol, LocalDate from, LocalDate to, boolean save);
     void trainHmmModel();
 }

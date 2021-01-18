@@ -36,10 +36,11 @@ public class PrecogController {
             value = "/prediction",
             method = RequestMethod.GET)
     ResponseEntity findPrecogData(@RequestParam(value = "symbol") String symbol,
-                                 @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date date)
+                                  @RequestParam @DateTimeFormat(pattern="yyyy-MM-dd") Date date,
+                                  @RequestParam(value = "modelName") String modelName)
     {
         LocalDateTime datetime = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
 
-        return _precogService.findPrediction(symbol, datetime);
+        return _precogService.findPrediction(symbol, modelName, datetime);
     }
 }
