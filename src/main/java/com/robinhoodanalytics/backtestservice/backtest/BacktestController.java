@@ -63,7 +63,7 @@ public class BacktestController {
     ResponseEntity updateQuote(@RequestBody Map<String, Object> payload)
     {
         try {
-            return _quoteService.updateQuoteImpliedMove((String) payload.get("symbol"), (Integer) payload.get("impliedMove"));
+            return _quoteService.updateQuoteImpliedMove((String) payload.get("symbol"), (double) payload.get("impliedMove"));
         } catch (RestClientException e) {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }

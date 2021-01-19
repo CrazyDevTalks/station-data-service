@@ -13,5 +13,5 @@ public interface QuoteService {
     ResponseEntity addIntradayQuotes(List<IntradayQuote> payload);
     List<Quote> getHistoricalQuotes(String symbol, Date from, Date to) throws RestClientException;
     ResponseEntity findIntradayQuotes(String symbol, LocalDateTime from, LocalDateTime to);
-    ResponseEntity updateQuoteImpliedMove(String symbol, int impliedMove);
+    ResponseEntity updateQuoteImpliedMove(String symbol, double impliedMove);
 }
